@@ -96,4 +96,46 @@ class Habit {
       updatedAt: DateTime.parse(json['updatedAt']),
     );
   }
+
+  Habit copyWith({
+    String? id,
+    String? title,
+    HabitFrequency? frequency,
+    int? targetWeeklyCount,
+    List<int>? specificDays,
+    DateTime? notificationTime,
+    List<DateTime>? completedDates,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return Habit(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      frequency: frequency ?? this.frequency,
+      targetWeeklyCount: targetWeeklyCount ?? this.targetWeeklyCount,
+      specificDays: specificDays ?? this.specificDays,
+      notificationTime: notificationTime ?? this.notificationTime,
+      completedDates: completedDates ?? this.completedDates,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  Habit copyWithCompletedDate(DateTime date, bool completed) {
+    final newCompletedDates = List<DateTime>.from(completedDates);
+    
+    if (completed) {
+      if (!isCompletedOnDate(date)) {
+        newCompletedDates.add(date);
+      }
+    } else {
+      newCompletedDates.removeWhere((d) =>
+          d.year == date.year && d.month == date.month && d.day == date.day);
+    }
+    
+    return copyWith(
+      completedDates: newCompletedDates,
+      updatedAt: DateTime.now(),
+    );
+  }
 }
