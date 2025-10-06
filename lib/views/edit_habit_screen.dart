@@ -281,7 +281,7 @@ class _EditHabitScreenState extends State<EditHabitScreen> {
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),
-                    Text('現在のストリーク: ${widget.habit.currentStreak}日'),
+                    Text('現在の連続記録: ${widget.habit.currentStreak}日'),
                     Text('作成日: ${_formatDate(widget.habit.createdAt)}'),
                     Text('更新日: ${_formatDate(widget.habit.updatedAt)}'),
                   ],
