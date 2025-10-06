@@ -150,6 +150,7 @@ class _HabitCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      color: isCompleted ? Colors.green[50] : null,
       child: InkWell(
         onTap: onTap,
         onLongPress: onEdit,
@@ -186,13 +187,33 @@ class _HabitCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      habit.title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            decoration:
-                                isCompleted ? TextDecoration.lineThrough : null,
-                            color: isCompleted ? Colors.grey : null,
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            habit.title,
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: isCompleted ? Colors.grey[600] : null,
+                                ),
                           ),
+                        ),
+                        if (isCompleted)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.green,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Text(
+                              '本日完了✓',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                     const SizedBox(height: 4),
                     Row(
@@ -215,6 +236,22 @@ class _HabitCard extends StatelessWidget {
                         _buildFrequencyText(context),
                       ],
                     ),
+                    if (habit.frequency == HabitFrequency.weekly)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: _buildWeeklyProgress(context, habit),
+                      ),
+                    if (isCompleted)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          _getNextMessage(habit),
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Colors.green[700],
+                                fontStyle: FontStyle.italic,
+                              ),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -260,6 +297,80 @@ class _HabitCard extends StatelessWidget {
           frequencyText,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Colors.grey[600],
+              ),
+        ),
+      ],
+    );
+  }
+
+  String _getNextMessage(Habit habit) {
+    final today = DateTime.now();
+    
+    switch (habit.frequency) {
+      case HabitFrequency.daily:
+        return '明日も続けましょう！';
+      
+      case HabitFrequency.weekly:
+        if (habit.isWeeklyTargetMet()) {
+          return '今週の目標達成！お疲れ様でした！';
+        } else {
+          return '今週の目標達成に向けて頑張りましょう！';
+        }
+      
+      case HabitFrequency.specificDays:
+        final nextDate = _getNextScheduledDate(habit, today);
+        if (nextDate == null) {
+          return '次回も頑張りましょう！';
+        }
+        
+        final daysDiff = nextDate.difference(today).inDays;
+        if (daysDiff == 1) {
+          return '明日も続けましょう！';
+        } else if (daysDiff <= 7) {
+          final weekdays = ['月', '火', '水', '木', '金', '土', '日'];
+          final nextWeekday = weekdays[nextDate.weekday - 1];
+          return '次は${nextWeekday}曜日です！';
+        } else {
+          return '次回も頑張りましょう！';
+        }
+    }
+  }
+
+  DateTime? _getNextScheduledDate(Habit habit, DateTime today) {
+    if (habit.specificDays == null || habit.specificDays!.isEmpty) {
+      return null;
+    }
+    
+    for (int i = 1; i <= 7; i++) {
+      final nextDate = today.add(Duration(days: i));
+      if (habit.specificDays!.contains(nextDate.weekday)) {
+        return nextDate;
+      }
+    }
+    
+    return null;
+  }
+
+  Widget _buildWeeklyProgress(BuildContext context, Habit habit) {
+    final completed = habit.getWeeklyCompletionCount();
+    final target = habit.targetWeeklyCount ?? 0;
+    final remaining = habit.getRemainingWeeklyCount();
+    
+    return Row(
+      children: [
+        Icon(
+          Icons.calendar_view_week,
+          size: 14,
+          color: habit.isWeeklyTargetMet() ? Colors.green : Colors.blue,
+        ),
+        const SizedBox(width: 4),
+        Text(
+          habit.isWeeklyTargetMet() 
+              ? '今週目標達成！($completed/$target)'
+              : '今週あと${remaining}回 ($completed/$target)',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: habit.isWeeklyTargetMet() ? Colors.green[700] : Colors.blue[700],
+                fontWeight: FontWeight.w500,
               ),
         ),
       ],

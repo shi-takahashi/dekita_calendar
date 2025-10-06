@@ -138,4 +138,40 @@ class Habit {
       updatedAt: DateTime.now(),
     );
   }
+
+  DateTime _getStartOfWeek(DateTime date) {
+    int weekday = date.weekday;
+    return date.subtract(Duration(days: weekday - 1));
+  }
+
+  DateTime _getEndOfWeek(DateTime date) {
+    int weekday = date.weekday;
+    return date.add(Duration(days: 7 - weekday));
+  }
+
+  int getWeeklyCompletionCount([DateTime? forDate]) {
+    final targetDate = forDate ?? DateTime.now();
+    final startOfWeek = _getStartOfWeek(targetDate);
+    final endOfWeek = _getEndOfWeek(targetDate);
+    
+    return completedDates.where((date) {
+      return date.isAfter(startOfWeek.subtract(const Duration(days: 1))) &&
+             date.isBefore(endOfWeek.add(const Duration(days: 1)));
+    }).length;
+  }
+
+  bool isWeeklyTargetMet([DateTime? forDate]) {
+    if (frequency != HabitFrequency.weekly || targetWeeklyCount == null) {
+      return false;
+    }
+    return getWeeklyCompletionCount(forDate) >= targetWeeklyCount!;
+  }
+
+  int getRemainingWeeklyCount([DateTime? forDate]) {
+    if (frequency != HabitFrequency.weekly || targetWeeklyCount == null) {
+      return 0;
+    }
+    final completed = getWeeklyCompletionCount(forDate);
+    return (targetWeeklyCount! - completed).clamp(0, targetWeeklyCount!);
+  }
 }

@@ -161,7 +161,22 @@ class _CalendarViewState extends State<CalendarView> {
                                           size: 28,
                                         ),
                                         title: Text(habit.title),
-                                        subtitle: Text(_getFrequencyText(habit)),
+                                        subtitle: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(_getFrequencyText(habit)),
+                                            if (habit.frequency == HabitFrequency.weekly)
+                                              Text(
+                                                _getWeeklyStatus(habit, selectedDay),
+                                                style: TextStyle(
+                                                  color: habit.isWeeklyTargetMet(selectedDay) 
+                                                      ? Colors.green[600] 
+                                                      : Colors.blue[600],
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                          ],
+                                        ),
                                         trailing: isCompleted 
                                             ? Text(
                                                 '完了',
@@ -209,7 +224,7 @@ class _CalendarViewState extends State<CalendarView> {
       case HabitFrequency.daily:
         return true;
       case HabitFrequency.weekly:
-        return true;
+        return !habit.isWeeklyTargetMet(day) || habit.isCompletedOnDate(day);
       case HabitFrequency.specificDays:
         return habit.specificDays?.contains(day.weekday) ?? false;
     }
@@ -238,6 +253,18 @@ class _CalendarViewState extends State<CalendarView> {
       case HabitFrequency.specificDays:
         final days = habit.specificDays?.map((d) => _getWeekdayName(d)).join(', ') ?? '';
         return days;
+    }
+  }
+
+  String _getWeeklyStatus(Habit habit, DateTime date) {
+    final completed = habit.getWeeklyCompletionCount(date);
+    final target = habit.targetWeeklyCount ?? 0;
+    
+    if (habit.isWeeklyTargetMet(date)) {
+      return 'この週の目標達成！($completed/$target)';
+    } else {
+      final remaining = target - completed;
+      return 'この週あと${remaining}回 ($completed/$target)';
     }
   }
 }
