@@ -1,6 +1,5 @@
 enum HabitFrequency {
   daily,
-  weekly,
   specificDays,
 }
 
@@ -8,7 +7,6 @@ class Habit {
   final String id;
   final String title;
   final HabitFrequency frequency;
-  final int? targetWeeklyCount;
   final List<int>? specificDays;
   final DateTime? notificationTime;
   final List<DateTime> completedDates;
@@ -19,7 +17,6 @@ class Habit {
     required this.id,
     required this.title,
     required this.frequency,
-    this.targetWeeklyCount,
     this.specificDays,
     this.notificationTime,
     required this.completedDates,
@@ -44,18 +41,33 @@ class Habit {
   int get currentStreak {
     if (completedDates.isEmpty) return 0;
 
-    completedDates.sort((a, b) => b.compareTo(a));
+    final sortedDates = List<DateTime>.from(completedDates)
+      ..sort((a, b) => b.compareTo(a));
+    
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    
+    // 今日が完了しているか確認
+    final todayCompleted = sortedDates.any((date) => 
+      date.year == today.year && 
+      date.month == today.month && 
+      date.day == today.day
+    );
+    
+    // 開始日を決定（今日完了してるなら今日から、してないなら昨日から）
+    final startDate = todayCompleted ? today : today.subtract(const Duration(days: 1));
     
     int streak = 0;
-    DateTime currentDate = DateTime.now();
+    DateTime checkDate = startDate;
     
-    for (int i = 0; i < completedDates.length; i++) {
-      final date = completedDates[i];
-      final dayDifference = currentDate.difference(date).inDays;
+    for (final completedDate in sortedDates) {
+      final completed = DateTime(completedDate.year, completedDate.month, completedDate.day);
       
-      if (dayDifference == i) {
+      if (completed.isAtSameMomentAs(checkDate)) {
         streak++;
-      } else {
+        checkDate = checkDate.subtract(const Duration(days: 1));
+      } else if (completed.isBefore(checkDate)) {
+        // 連続が途切れた
         break;
       }
     }
@@ -68,7 +80,6 @@ class Habit {
       'id': id,
       'title': title,
       'frequency': frequency.index,
-      'targetWeeklyCount': targetWeeklyCount,
       'specificDays': specificDays,
       'notificationTime': notificationTime?.toIso8601String(),
       'completedDates': completedDates.map((d) => d.toIso8601String()).toList(),
@@ -82,7 +93,6 @@ class Habit {
       id: json['id'],
       title: json['title'],
       frequency: HabitFrequency.values[json['frequency']],
-      targetWeeklyCount: json['targetWeeklyCount'],
       specificDays: json['specificDays'] != null
           ? List<int>.from(json['specificDays'])
           : null,
@@ -101,7 +111,6 @@ class Habit {
     String? id,
     String? title,
     HabitFrequency? frequency,
-    int? targetWeeklyCount,
     List<int>? specificDays,
     DateTime? notificationTime,
     List<DateTime>? completedDates,
@@ -112,7 +121,6 @@ class Habit {
       id: id ?? this.id,
       title: title ?? this.title,
       frequency: frequency ?? this.frequency,
-      targetWeeklyCount: targetWeeklyCount ?? this.targetWeeklyCount,
       specificDays: specificDays ?? this.specificDays,
       notificationTime: notificationTime ?? this.notificationTime,
       completedDates: completedDates ?? this.completedDates,
@@ -139,39 +147,4 @@ class Habit {
     );
   }
 
-  DateTime _getStartOfWeek(DateTime date) {
-    int weekday = date.weekday;
-    return date.subtract(Duration(days: weekday - 1));
-  }
-
-  DateTime _getEndOfWeek(DateTime date) {
-    int weekday = date.weekday;
-    return date.add(Duration(days: 7 - weekday));
-  }
-
-  int getWeeklyCompletionCount([DateTime? forDate]) {
-    final targetDate = forDate ?? DateTime.now();
-    final startOfWeek = _getStartOfWeek(targetDate);
-    final endOfWeek = _getEndOfWeek(targetDate);
-    
-    return completedDates.where((date) {
-      return date.isAfter(startOfWeek.subtract(const Duration(days: 1))) &&
-             date.isBefore(endOfWeek.add(const Duration(days: 1)));
-    }).length;
-  }
-
-  bool isWeeklyTargetMet([DateTime? forDate]) {
-    if (frequency != HabitFrequency.weekly || targetWeeklyCount == null) {
-      return false;
-    }
-    return getWeeklyCompletionCount(forDate) >= targetWeeklyCount!;
-  }
-
-  int getRemainingWeeklyCount([DateTime? forDate]) {
-    if (frequency != HabitFrequency.weekly || targetWeeklyCount == null) {
-      return 0;
-    }
-    final completed = getWeeklyCompletionCount(forDate);
-    return (targetWeeklyCount! - completed).clamp(0, targetWeeklyCount!);
-  }
 }

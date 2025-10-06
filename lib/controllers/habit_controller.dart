@@ -87,8 +87,6 @@ class HabitController extends ChangeNotifier {
       switch (habit.frequency) {
         case HabitFrequency.daily:
           return true;
-        case HabitFrequency.weekly:
-          return true;
         case HabitFrequency.specificDays:
           return habit.specificDays?.contains(weekday) ?? false;
       }

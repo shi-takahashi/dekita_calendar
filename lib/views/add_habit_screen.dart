@@ -20,7 +20,6 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
   final _titleController = TextEditingController();
   
   HabitFrequency _selectedFrequency = HabitFrequency.daily;
-  int _targetWeeklyCount = 1;
   List<int> _selectedDays = [];
   TimeOfDay? _notificationTime;
   bool _enableNotification = false;
@@ -73,7 +72,6 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         title: _titleController.text.trim(),
         frequency: _selectedFrequency,
-        targetWeeklyCount: _selectedFrequency == HabitFrequency.weekly ? _targetWeeklyCount : null,
         specificDays: _selectedFrequency == HabitFrequency.specificDays ? _selectedDays : null,
         notificationTime: notificationDateTime,
         completedDates: [],
@@ -143,50 +141,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
               },
             ),
             
-            RadioListTile<HabitFrequency>(
-              title: const Text('週に数回'),
-              value: HabitFrequency.weekly,
-              groupValue: _selectedFrequency,
-              onChanged: (value) {
-                setState(() {
-                  _selectedFrequency = value!;
-                });
-              },
-            ),
             
-            if (_selectedFrequency == HabitFrequency.weekly)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Row(
-                  children: [
-                    const Text('週に'),
-                    const SizedBox(width: 8),
-                    SizedBox(
-                      width: 60,
-                      child: TextFormField(
-                        initialValue: _targetWeeklyCount.toString(),
-                        keyboardType: TextInputType.number,
-                        textAlign: TextAlign.center,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                          LengthLimitingTextInputFormatter(1),
-                        ],
-                        onChanged: (value) {
-                          if (value.isNotEmpty) {
-                            setState(() {
-                              _targetWeeklyCount = int.parse(value);
-                              if (_targetWeeklyCount < 1) _targetWeeklyCount = 1;
-                              if (_targetWeeklyCount > 7) _targetWeeklyCount = 7;
-                            });
-                          }
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    const Text('回'),
-                  ],
-                ),
-              ),
             
             RadioListTile<HabitFrequency>(
               title: const Text('特定の曜日'),

@@ -34,7 +34,7 @@ class _HomeViewState extends State<HomeView> {
           IconButton(
             icon: const Icon(Icons.calendar_today),
             onPressed: () {
-              DefaultTabController.of(context)!.animateTo(1);
+              DefaultTabController.of(context).animateTo(1);
             },
           ),
         ],
@@ -236,11 +236,6 @@ class _HabitCard extends StatelessWidget {
                         _buildFrequencyText(context),
                       ],
                     ),
-                    if (habit.frequency == HabitFrequency.weekly)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: _buildWeeklyProgress(context, habit),
-                      ),
                     if (isCompleted)
                       Padding(
                         padding: const EdgeInsets.only(top: 4),
@@ -272,9 +267,6 @@ class _HabitCard extends StatelessWidget {
     switch (habit.frequency) {
       case HabitFrequency.daily:
         frequencyText = '毎日';
-        break;
-      case HabitFrequency.weekly:
-        frequencyText = '週${habit.targetWeeklyCount}回';
         break;
       case HabitFrequency.specificDays:
         final days = ['月', '火', '水', '木', '金', '土', '日'];
@@ -310,13 +302,6 @@ class _HabitCard extends StatelessWidget {
       case HabitFrequency.daily:
         return '明日も続けましょう！';
       
-      case HabitFrequency.weekly:
-        if (habit.isWeeklyTargetMet()) {
-          return '今週の目標達成！お疲れ様でした！';
-        } else {
-          return '今週の目標達成に向けて頑張りましょう！';
-        }
-      
       case HabitFrequency.specificDays:
         final nextDate = _getNextScheduledDate(habit, today);
         if (nextDate == null) {
@@ -351,29 +336,4 @@ class _HabitCard extends StatelessWidget {
     return null;
   }
 
-  Widget _buildWeeklyProgress(BuildContext context, Habit habit) {
-    final completed = habit.getWeeklyCompletionCount();
-    final target = habit.targetWeeklyCount ?? 0;
-    final remaining = habit.getRemainingWeeklyCount();
-    
-    return Row(
-      children: [
-        Icon(
-          Icons.calendar_view_week,
-          size: 14,
-          color: habit.isWeeklyTargetMet() ? Colors.green : Colors.blue,
-        ),
-        const SizedBox(width: 4),
-        Text(
-          habit.isWeeklyTargetMet() 
-              ? '今週目標達成！($completed/$target)'
-              : '今週あと${remaining}回 ($completed/$target)',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: habit.isWeeklyTargetMet() ? Colors.green[700] : Colors.blue[700],
-                fontWeight: FontWeight.w500,
-              ),
-        ),
-      ],
-    );
-  }
 }
