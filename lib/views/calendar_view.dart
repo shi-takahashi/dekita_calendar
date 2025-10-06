@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../controllers/habit_controller.dart';
 import '../models/habit.dart';
+import '../utils/japanese_calendar_utils.dart';
 
 class CalendarView extends StatefulWidget {
   const CalendarView({super.key});
@@ -41,12 +42,14 @@ class _CalendarViewState extends State<CalendarView> {
               Container(
                 padding: const EdgeInsets.all(16),
                 child: TableCalendar<Habit>(
+                  locale: 'ja_JP',
                   firstDay: DateTime.utc(2020, 1, 1),
                   lastDay: DateTime.utc(2030, 12, 31),
                   focusedDay: _focusedDay,
                   selectedDayPredicate: (day) => isSameDay(_selectedDay.value, day),
                   calendarFormat: CalendarFormat.month,
                   startingDayOfWeek: StartingDayOfWeek.monday,
+                  daysOfWeekVisible: true,
                   headerStyle: const HeaderStyle(
                     titleCentered: true,
                     formatButtonVisible: false,
@@ -82,7 +85,75 @@ class _CalendarViewState extends State<CalendarView> {
                   onPageChanged: (focusedDay) {
                     _focusedDay = focusedDay;
                   },
+                  daysOfWeekStyle: const DaysOfWeekStyle(
+                    weekdayStyle: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                    weekendStyle: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red,
+                    ),
+                  ),
                   calendarBuilders: CalendarBuilders(
+                    headerTitleBuilder: (context, day) {
+                      return Container(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Text(
+                          '${day.year}年${day.month}月',
+                          style: const TextStyle(
+                            fontSize: 20.0,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      );
+                    },
+                    dowBuilder: (context, day) {
+                      final text = JapaneseCalendarUtils.getJapaneseDayOfWeek(day);
+                      Color textColor;
+                      if (day.weekday == DateTime.saturday) {
+                        textColor = Colors.blue[600]!; // 土曜日は青
+                      } else if (day.weekday == DateTime.sunday) {
+                        textColor = Colors.red[400]!; // 日曜日は赤
+                      } else {
+                        textColor = Colors.black87; // 平日は黒
+                      }
+                      
+                      return Center(
+                        child: Text(
+                          text,
+                          style: TextStyle(
+                            color: textColor,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      );
+                    },
+                    defaultBuilder: (context, day, focusedDay) {
+                      Color textColor;
+                      if (day.weekday == DateTime.saturday) {
+                        textColor = Colors.blue[600]!; // 土曜日は青
+                      } else if (day.weekday == DateTime.sunday) {
+                        textColor = Colors.red[400]!; // 日曜日は赤
+                      } else {
+                        textColor = Colors.black87; // 平日は黒
+                      }
+                      
+                      return Container(
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                        ),
+                        margin: const EdgeInsets.all(6.0),
+                        alignment: Alignment.center,
+                        child: Text(
+                          '${day.day}',
+                          style: TextStyle(
+                            color: textColor,
+                            fontSize: 16,
+                          ),
+                        ),
+                      );
+                    },
                     markerBuilder: (context, day, events) {
                       if (events.isNotEmpty) {
                         final completedCount = _getCompletedHabitsCount(habitController.habits, day);
