@@ -321,7 +321,7 @@ class _StatisticsViewState extends State<StatisticsView> with AutomaticKeepAlive
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              _selectedPeriod == 0 ? '週別の達成率' : '月別の達成率',
+              _selectedPeriod == 0 ? '過去の週別の達成率' : '過去の月別の達成率',
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
