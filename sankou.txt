@@ -1,0 +1,149 @@
+pubspec.yaml
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_local_notifications: ^17.2.4
+  timezone: ^0.9.4
+  flutter_native_timezone_updated_gradle: ^2.0.3
+
+flutter_native_timezone_updated_gradle は、timezone と OSのタイムゾーンを同期させるために使います。
+
+
+----------------------------------------
+AndroidManifest.xml（追加箇所）
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.example.localnotify">
+
+    <!-- 通知・正確なアラーム用の権限 -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+
+    <application
+        android:label="localnotify"
+        android:icon="@mipmap/ic_launcher">
+        ...
+    </application>
+</manifest>
+
+Android 13以降では POST_NOTIFICATIONS が必須です。
+Android 12以降では SCHEDULE_EXACT_ALARM がないと正確なスケジュール通知が無効になります。
+
+
+----------------------------------------
+main.dart
+
+import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/data/latest_all.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
+import 'package:flutter_native_timezone_updated_gradle/flutter_native_timezone.dart';
+
+final FlutterLocalNotificationsPlugin _notifications =
+    FlutterLocalNotificationsPlugin();
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // タイムゾーン初期化（重要）
+  tz.initializeTimeZones();
+  final localTz = await FlutterNativeTimezone.getLocalTimezone();
+  tz.setLocalLocation(tz.getLocation(localTz));
+
+  // 通知初期化設定
+  const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+  const initSettings = InitializationSettings(android: androidInit);
+  await _notifications.initialize(initSettings);
+
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Local Notify Demo',
+      theme: ThemeData(primarySwatch: Colors.blue),
+      home: const NotifyDemo(),
+    );
+  }
+}
+
+class NotifyDemo extends StatelessWidget {
+  const NotifyDemo({super.key});
+
+  Future<void> _showImmediateNotification() async {
+    await _notifications.show(
+      99999,
+      '即時テスト',
+      'これはすぐに表示される通知です',
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'default_channel',
+          'Default Channel',
+          channelDescription: '即時通知用チャンネル',
+          importance: Importance.max,
+          priority: Priority.high,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _scheduleNotification() async {
+    final scheduledDate =
+        tz.TZDateTime.now(tz.local).add(const Duration(seconds: 30));
+
+    await _notifications.zonedSchedule(
+      12345,
+      '30秒後テスト',
+      'これは30秒後に配信される通知です',
+      scheduledDate,
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'default_channel',
+          'Default Channel',
+          channelDescription: 'スケジュール通知用チャンネル',
+          importance: Importance.max,
+          priority: Priority.high,
+        ),
+      ),
+      androidAllowWhileIdle: true, // これが最も安定する
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      matchDateTimeComponents: null, // nullで単発
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('ローカル通知デモ')),
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ElevatedButton(
+              onPressed: _showImmediateNotification,
+              child: const Text('即時通知'),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _scheduleNotification,
+              child: const Text('30秒後に通知'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+-----------------------------------------
+✅ この構成のポイント
+項目	説明
+tz.initializeTimeZones() + setLocalLocation()	最重要。これをしないと zonedSchedule は無視されます。
+androidAllowWhileIdle: true	Android 12〜14 でもDozeモード下で通知を許可します。
+SCHEDULE_EXACT_ALARM 権限追加	Android 12+で必要。Manifestで必須。
+POST_NOTIFICATIONS 権限	Android 13+で必要。ユーザーから明示的に許可されないと通知が出ません。
+matchDateTimeComponents: null	繰り返しではなく1回限りの通知にします。

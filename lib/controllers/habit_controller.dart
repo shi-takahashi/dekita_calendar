@@ -1,9 +1,21 @@
 import 'package:flutter/material.dart';
 import '../models/habit.dart';
 import '../services/habit_repository.dart';
+import '../services/alarm_notification_service.dart';
+import '../services/improved_notification_service.dart';
+import '../services/workmanager_notification_service.dart';
+import '../services/native_alarm_notification_service.dart';
 
 class HabitController extends ChangeNotifier {
   final HabitRepository _repository = HabitRepository();
+  // ネイティブAlarmManager通知サービスを使用（最優先・最確実）
+  final NativeAlarmNotificationService _notificationService = NativeAlarmNotificationService();
+  // WorkManager版も保持（比較・切り替え用）
+  final WorkManagerNotificationService _workManagerNotificationService = WorkManagerNotificationService();
+  // 改善版も保持（比較・切り替え用）
+  final ImprovedNotificationService _improvedNotificationService = ImprovedNotificationService();
+  // 従来版も保持（必要に応じて切り替え可能）
+  final AlarmNotificationService _alarmNotificationService = AlarmNotificationService();
   List<Habit> _habits = [];
   bool _isLoading = false;
 
@@ -28,6 +40,11 @@ class HabitController extends ChangeNotifier {
     try {
       await _repository.saveHabit(habit);
       _habits.add(habit);
+      
+      if (habit.notificationTime != null) {
+        await _notificationService.scheduleHabitNotifications(habit);
+      }
+      
       notifyListeners();
     } catch (e) {
       debugPrint('Error adding habit: $e');
@@ -41,6 +58,12 @@ class HabitController extends ChangeNotifier {
       final index = _habits.indexWhere((h) => h.id == habit.id);
       if (index != -1) {
         _habits[index] = habit;
+        
+        await _notificationService.cancelHabitNotifications(habit.id);
+        if (habit.notificationTime != null) {
+          await _notificationService.scheduleHabitNotifications(habit);
+        }
+        
         notifyListeners();
       }
     } catch (e) {
@@ -52,6 +75,7 @@ class HabitController extends ChangeNotifier {
   Future<void> deleteHabit(String habitId) async {
     try {
       await _repository.deleteHabit(habitId);
+      await _notificationService.cancelHabitNotifications(habitId);
       _habits.removeWhere((h) => h.id == habitId);
       notifyListeners();
     } catch (e) {
@@ -98,6 +122,15 @@ class HabitController extends ChangeNotifier {
       return _habits.firstWhere((h) => h.id == id);
     } catch (e) {
       return null;
+    }
+  }
+
+  Future<void> rescheduleAllNotifications() async {
+    for (final habit in _habits) {
+      await _notificationService.cancelHabitNotifications(habit.id);
+      if (habit.notificationTime != null) {
+        await _notificationService.scheduleHabitNotifications(habit);
+      }
     }
   }
 }
