@@ -45,6 +45,7 @@ dependencies:
   timezone: ^0.9.4
   android_alarm_manager_plus: ^4.0.4
   workmanager: ^0.9.0+3
+  google_mobile_ads: ^5.2.0
 
 dev_dependencies:
   flutter_test:

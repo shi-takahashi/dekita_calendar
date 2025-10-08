@@ -3,16 +3,21 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'controllers/habit_controller.dart';
 import 'services/native_alarm_notification_service.dart';
+import 'services/ad_service.dart';
 import 'views/home_view.dart';
 import 'views/calendar_view.dart';
 import 'views/statistics_view.dart';
 import 'views/settings_view.dart';
+import 'widgets/banner_ad_widget.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await NativeAlarmNotificationService.initialize();
-  
+
+  // AdMobの初期化
+  await AdService.initialize();
+
   runApp(
     ChangeNotifierProvider(
       create: (context) => HabitController(),
@@ -87,28 +92,34 @@ class _MainScreenState extends State<MainScreen> {
           index: _selectedIndex,
           children: _pages,
         ),
-        bottomNavigationBar: BottomNavigationBar(
-          type: BottomNavigationBarType.fixed,
-          items: const <BottomNavigationBarItem>[
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home),
-              label: 'ホーム',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_month),
-              label: 'カレンダー',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.bar_chart),
-              label: '統計',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.settings),
-              label: '設定',
+        bottomNavigationBar: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const BannerAdWidget(),
+            BottomNavigationBar(
+              type: BottomNavigationBarType.fixed,
+              items: const <BottomNavigationBarItem>[
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.home),
+                  label: 'ホーム',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.calendar_month),
+                  label: 'カレンダー',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.bar_chart),
+                  label: '統計',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.settings),
+                  label: '設定',
+                ),
+              ],
+              currentIndex: _selectedIndex,
+              onTap: _onItemTapped,
             ),
           ],
-          currentIndex: _selectedIndex,
-          onTap: _onItemTapped,
         ),
       ),
     );
