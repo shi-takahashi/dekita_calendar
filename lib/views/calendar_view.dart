@@ -4,6 +4,7 @@ import 'package:table_calendar/table_calendar.dart';
 import '../controllers/habit_controller.dart';
 import '../models/habit.dart';
 import '../utils/japanese_calendar_utils.dart';
+import '../services/ad_service.dart';
 
 class CalendarView extends StatefulWidget {
   const CalendarView({super.key});
@@ -252,7 +253,7 @@ class _CalendarViewState extends State<CalendarView> {
                                               ),
                                         onTap: () async {
                                           if (!selectedDay.isAfter(DateTime.now())) {
-                                            await habitController.toggleHabitCompletion(habit.id, selectedDay);
+                                            await _handleHabitToggle(context, habitController, habit, selectedDay);
                                           }
                                         },
                                       ),
@@ -310,6 +311,65 @@ class _CalendarViewState extends State<CalendarView> {
       case HabitFrequency.specificDays:
         final days = habit.specificDays?.map((d) => _getWeekdayName(d)).join(', ') ?? '';
         return days;
+    }
+  }
+
+  /// 習慣の完了状態をトグルする（過去日付の場合は広告を表示）
+  Future<void> _handleHabitToggle(
+    BuildContext context,
+    HabitController habitController,
+    Habit habit,
+    DateTime selectedDay,
+  ) async {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final targetDay = DateTime(selectedDay.year, selectedDay.month, selectedDay.day);
+    final isPastDate = targetDay.isBefore(today);
+    final isCurrentlyCompleted = habit.isCompletedOnDate(selectedDay);
+
+    // 過去日付で未完了→完了にする場合のみ広告を表示
+    if (isPastDate && !isCurrentlyCompleted) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('過去の習慣を完了にする'),
+          content: const Text(
+            '過去の習慣を完了にするには、広告の視聴が必要です。\n\n広告視聴後に完了状態になります。\n\nよろしいですか？',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('キャンセル'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirmed == true && context.mounted) {
+        // 広告を表示
+        AdService.showInterstitialAd(
+          onAdClosed: () async {
+            // 広告が閉じられたら完了状態にする
+            await habitController.toggleHabitCompletion(habit.id, selectedDay);
+          },
+          onAdFailedToShow: () async {
+            // 広告の表示に失敗した場合でも完了状態にする
+            await habitController.toggleHabitCompletion(habit.id, selectedDay);
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('広告の読み込みに失敗しましたが、完了状態を変更しました')),
+              );
+            }
+          },
+        );
+      }
+    } else {
+      // 今日の日付、または過去日付で完了→未完了にする場合は広告なしで切り替え
+      await habitController.toggleHabitCompletion(habit.id, selectedDay);
     }
   }
 
