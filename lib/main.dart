@@ -2,10 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'controllers/habit_controller.dart';
-import 'services/alarm_notification_service.dart';
-import 'services/simple_notification_service.dart';
-import 'services/improved_notification_service.dart';
-import 'services/workmanager_notification_service.dart';
 import 'services/native_alarm_notification_service.dart';
 import 'views/home_view.dart';
 import 'views/calendar_view.dart';
@@ -14,18 +10,8 @@ import 'views/settings_view.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // ネイティブAlarmManager通知サービスを初期化（最優先・最確実）
+
   await NativeAlarmNotificationService.initialize();
-  
-  // WorkManager通知サービスも初期化（比較用）
-  // await WorkManagerNotificationService.initialize();
-  
-  // 改善版通知サービスも初期化（比較用）
-  await ImprovedNotificationService.initialize();
-  
-  // 従来版も念のため初期化（テスト用）
-  await SimpleNotificationService.initialize();
   
   runApp(
     ChangeNotifierProvider(

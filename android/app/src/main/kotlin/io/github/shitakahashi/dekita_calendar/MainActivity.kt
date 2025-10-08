@@ -80,14 +80,27 @@ class MainActivity : FlutterActivity() {
                         val habitId = call.argument<String>("habitId") ?: return@setMethodCallHandler result.error("INVALID_ARGUMENT", "habitId is required", null)
                         val habitTitle = call.argument<String>("habitTitle") ?: return@setMethodCallHandler result.error("INVALID_ARGUMENT", "habitTitle is required", null)
                         val frequency = call.argument<String>("frequency") ?: "unknown"
+                        val dayOfWeek = call.argument<Int>("dayOfWeek") ?: -1
+
+                        // triggerTimeMillisから時刻を抽出
+                        val calendar = java.util.Calendar.getInstance().apply {
+                            timeInMillis = triggerTimeMillis
+                        }
+                        val alarmHour = calendar.get(java.util.Calendar.HOUR_OF_DAY)
+                        val alarmMinute = calendar.get(java.util.Calendar.MINUTE)
 
                         val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
-                        
+
                         // BroadcastReceiverを使用したIntentを作成
                         val intent = Intent(this, AlarmReceiver::class.java).apply {
                             putExtra("habitId", habitId)
                             putExtra("habitTitle", habitTitle)
                             putExtra("frequency", frequency)
+                            putExtra("alarmHour", alarmHour)
+                            putExtra("alarmMinute", alarmMinute)
+                            if (dayOfWeek != -1) {
+                                putExtra("dayOfWeek", dayOfWeek)
+                            }
                         }
                         
                         val pendingIntent = PendingIntent.getBroadcast(

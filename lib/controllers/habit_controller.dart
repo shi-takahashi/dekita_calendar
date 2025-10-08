@@ -1,21 +1,11 @@
 import 'package:flutter/material.dart';
 import '../models/habit.dart';
 import '../services/habit_repository.dart';
-import '../services/alarm_notification_service.dart';
-import '../services/improved_notification_service.dart';
-import '../services/workmanager_notification_service.dart';
 import '../services/native_alarm_notification_service.dart';
 
 class HabitController extends ChangeNotifier {
   final HabitRepository _repository = HabitRepository();
-  // ネイティブAlarmManager通知サービスを使用（最優先・最確実）
   final NativeAlarmNotificationService _notificationService = NativeAlarmNotificationService();
-  // WorkManager版も保持（比較・切り替え用）
-  final WorkManagerNotificationService _workManagerNotificationService = WorkManagerNotificationService();
-  // 改善版も保持（比較・切り替え用）
-  final ImprovedNotificationService _improvedNotificationService = ImprovedNotificationService();
-  // 従来版も保持（必要に応じて切り替え可能）
-  final AlarmNotificationService _alarmNotificationService = AlarmNotificationService();
   List<Habit> _habits = [];
   bool _isLoading = false;
 
