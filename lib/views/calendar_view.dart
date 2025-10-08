@@ -334,7 +334,7 @@ class _CalendarViewState extends State<CalendarView> {
         builder: (context) => AlertDialog(
           title: const Text('過去の習慣を完了にする'),
           content: const Text(
-            '過去の習慣を完了にするには、広告の視聴が必要です。\n\n広告視聴後に完了状態になります。\n\nよろしいですか？',
+            '過去の日付を完了にします。よろしいですか？\n（広告の視聴後、完了状態になります）',
           ),
           actions: [
             TextButton(
