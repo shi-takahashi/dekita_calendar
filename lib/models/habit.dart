@@ -29,6 +29,19 @@ class Habit {
         d.year == date.year && d.month == date.month && d.day == date.day);
   }
 
+  /// 指定された日付にこの習慣が予定されているかチェック
+  bool isScheduledOn(DateTime date) {
+    switch (frequency) {
+      case HabitFrequency.daily:
+        return true;
+      case HabitFrequency.specificDays:
+        if (specificDays == null || specificDays!.isEmpty) {
+          return false;
+        }
+        return specificDays!.contains(date.weekday);
+    }
+  }
+
   void toggleCompletion(DateTime date) {
     if (isCompletedOnDate(date)) {
       completedDates.removeWhere((d) =>
