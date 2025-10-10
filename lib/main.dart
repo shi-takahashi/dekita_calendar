@@ -61,6 +61,7 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
+  final GlobalKey<HomeViewState> _homeKey = GlobalKey();
 
   late final List<Widget> _pages;
 
@@ -68,9 +69,9 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     final habitController = context.read<HabitController>();
-    
+
     _pages = [
-      HomeView(habitController: habitController),
+      HomeView(key: _homeKey, habitController: habitController),
       const CalendarView(),
       const StatisticsView(),
       const SettingsView(),
@@ -81,6 +82,11 @@ class _MainScreenState extends State<MainScreen> {
     setState(() {
       _selectedIndex = index;
     });
+
+    // ホーム画面に戻った時にバッジ進捗を更新
+    if (index == 0) {
+      _homeKey.currentState?.refreshBadgeProgress();
+    }
   }
 
   @override

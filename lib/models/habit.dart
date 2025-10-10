@@ -54,37 +54,43 @@ class Habit {
   int get currentStreak {
     if (completedDates.isEmpty) return 0;
 
-    final sortedDates = List<DateTime>.from(completedDates)
-      ..sort((a, b) => b.compareTo(a));
-    
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    
-    // 今日が完了しているか確認
-    final todayCompleted = sortedDates.any((date) => 
-      date.year == today.year && 
-      date.month == today.month && 
-      date.day == today.day
-    );
-    
-    // 開始日を決定（今日完了してるなら今日から、してないなら昨日から）
-    final startDate = todayCompleted ? today : today.subtract(const Duration(days: 1));
-    
+
+    // 今日が予定日かつ完了しているか確認
+    final todayIsScheduled = isScheduledOn(today);
+    final todayCompleted = isCompletedOnDate(today);
+
+    // 開始日を決定
+    DateTime checkDate;
+    if (todayIsScheduled && todayCompleted) {
+      // 今日が予定日で完了している場合は今日から
+      checkDate = today;
+    } else {
+      // それ以外の場合は昨日から遡る
+      checkDate = today.subtract(const Duration(days: 1));
+    }
+
     int streak = 0;
-    DateTime checkDate = startDate;
-    
-    for (final completedDate in sortedDates) {
-      final completed = DateTime(completedDate.year, completedDate.month, completedDate.day);
-      
-      if (completed.isAtSameMomentAs(checkDate)) {
+
+    // 最大365日遡る（過去1年分）
+    for (int i = 0; i < 365; i++) {
+      // この日が予定日でない場合はスキップ
+      if (!isScheduledOn(checkDate)) {
+        checkDate = checkDate.subtract(const Duration(days: 1));
+        continue;
+      }
+
+      // この日が完了していれば連続記録を増やす
+      if (isCompletedOnDate(checkDate)) {
         streak++;
         checkDate = checkDate.subtract(const Duration(days: 1));
-      } else if (completed.isBefore(checkDate)) {
-        // 連続が途切れた
+      } else {
+        // 予定日だが完了していない場合は連続記録終了
         break;
       }
     }
-    
+
     return streak;
   }
 

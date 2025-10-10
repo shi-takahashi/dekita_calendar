@@ -37,7 +37,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> with WidgetsBindingObse
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     // AdServiceのフラグが有効な場合のみ広告を読み込み
-    if (AdService.showBannerAds) {
+    if (AdService.showAds) {
       // 初回は少し遅延させて読み込み（他の初期化処理と競合を避ける）
       Future.delayed(const Duration(milliseconds: 500), () {
         if (mounted) {
@@ -66,7 +66,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> with WidgetsBindingObse
 
     // アプリがフォアグラウンドに戻った時、広告が読み込まれていない場合は再読み込み
     if (state == AppLifecycleState.resumed &&
-        AdService.showBannerAds &&
+        AdService.showAds &&
         !_isAdLoaded &&
         !_isLoading &&
         mounted) {
@@ -193,7 +193,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> with WidgetsBindingObse
   @override
   Widget build(BuildContext context) {
     // プログラムフラグで広告表示が無効の場合は何も表示しない
-    if (!AdService.showBannerAds) {
+    if (!AdService.showAds) {
       return const SizedBox.shrink();
     }
 

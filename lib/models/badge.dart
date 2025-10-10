@@ -7,9 +7,6 @@ enum BadgeType {
   gold,
   platinum,
   diamond,
-  master,
-  legend,
-  ultimate,
 }
 
 /// バッジの定義
@@ -17,7 +14,7 @@ class AchievementBadge {
   final String id;
   final String name;
   final BadgeType type;
-  final int requiredDays;
+  final int requiredWeeks;
   final Color color;
   final IconData icon;
 
@@ -25,7 +22,7 @@ class AchievementBadge {
     required this.id,
     required this.name,
     required this.type,
-    required this.requiredDays,
+    required this.requiredWeeks,
     required this.color,
     required this.icon,
   });
@@ -33,7 +30,7 @@ class AchievementBadge {
 
 /// バッジ進捗状態
 class BadgeProgress {
-  final int currentStreak; // 現在の連続日数
+  final int currentStreak; // 現在の連続週数
   final List<String> unlockedBadgeIds; // 獲得済みバッジID
   final DateTime? lastUpdated;
 

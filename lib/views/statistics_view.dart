@@ -429,24 +429,43 @@ class _StatisticsViewState extends State<StatisticsView> with AutomaticKeepAlive
 
   int _getMaxStreak(Habit habit) {
     if (habit.completedDates.isEmpty) return 0;
-    
-    final sortedDates = List<DateTime>.from(habit.completedDates)
+
+    // 完了日を正規化してソート
+    final normalizedDates = habit.completedDates
+        .map((d) => DateTime(d.year, d.month, d.day))
+        .toSet()
+        .toList()
       ..sort((a, b) => a.compareTo(b));
-    
-    int maxStreak = 1;
-    int currentStreak = 1;
-    
-    for (int i = 1; i < sortedDates.length; i++) {
-      final diff = sortedDates[i].difference(sortedDates[i - 1]).inDays;
-      
-      if (diff == 1) {
-        currentStreak++;
-        maxStreak = maxStreak > currentStreak ? maxStreak : currentStreak;
-      } else {
-        currentStreak = 1;
+
+    if (normalizedDates.isEmpty) return 0;
+
+    int maxStreak = 0;
+    int currentStreak = 0;
+    DateTime? lastScheduledDate;
+
+    // 最初の完了日から最後の完了日まで調べる
+    final startDate = normalizedDates.first;
+    final endDate = normalizedDates.last;
+
+    DateTime checkDate = startDate;
+    while (checkDate.isBefore(endDate.add(const Duration(days: 1)))) {
+      // この日が予定日の場合のみチェック
+      if (habit.isScheduledOn(checkDate)) {
+        if (habit.isCompletedOnDate(checkDate)) {
+          // 完了している
+          currentStreak++;
+          maxStreak = currentStreak > maxStreak ? currentStreak : maxStreak;
+        } else {
+          // 予定日だが完了していない
+          currentStreak = 0;
+        }
+        lastScheduledDate = checkDate;
       }
+      // 予定日でない場合はスキップ（連続記録は維持）
+
+      checkDate = checkDate.add(const Duration(days: 1));
     }
-    
+
     return maxStreak;
   }
 

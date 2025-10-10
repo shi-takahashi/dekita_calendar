@@ -18,13 +18,18 @@ class HomeView extends StatefulWidget {
   });
 
   @override
-  State<HomeView> createState() => _HomeViewState();
+  HomeViewState createState() => HomeViewState();
 }
 
-class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
+class HomeViewState extends State<HomeView> with WidgetsBindingObserver {
   final _badgeService = BadgeService();
   BadgeProgress? _badgeProgress;
   bool _isUpdating = false; // 更新中フラグで無限ループ防止
+
+  /// 外部から呼び出すためのバッジ進捗更新メソッド
+  void refreshBadgeProgress() {
+    _loadBadgeProgress();
+  }
 
   @override
   void initState() {
@@ -60,9 +65,40 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
     print('🏅 バッジ進捗読み込み開始');
 
     try {
+      // まず未表示のバッジをチェック（カレンダー画面などで獲得したバッジ）
+      final pendingBadges = await _badgeService.getPendingBadges();
+      if (pendingBadges.isNotEmpty && mounted) {
+        // 複数獲得した場合は最高価値のものだけを表示
+        final highestBadge = pendingBadges.reduce((a, b) =>
+          a.requiredWeeks > b.requiredWeeks ? a : b
+        );
+
+        print('🎉 未表示バッジを検出: ${highestBadge.name}');
+
+        // 未表示フラグをクリア
+        await _badgeService.clearPendingBadges();
+
+        // 少し待ってから演出を開始
+        await Future.delayed(const Duration(milliseconds: 300));
+
+        if (mounted) {
+          // 流れ星アニメーション（バッジを渡す）
+          ShootingStarAnimation.show(context, highestBadge);
+
+          // アニメーションの長さに応じて待つ
+          final animationDuration = _getAnimationDuration(highestBadge.type);
+          await Future.delayed(Duration(milliseconds: animationDuration + 800));
+
+          if (mounted) {
+            _showBadgeAchievedDialog(context, highestBadge);
+          }
+        }
+      }
+
+      // 現在の進捗を取得
       final currentProgress = await _badgeService.getCurrentProgress();
 
-      print('🏅 現在の進捗: 連続${currentProgress.currentStreak}日, バッジ${currentProgress.unlockedBadgeIds.length}個獲得');
+      print('🏅 現在の進捗: 連続${currentProgress.currentStreak}週, バッジ${currentProgress.unlockedBadgeIds.length}個獲得');
 
       if (!mounted) return;
 
@@ -70,7 +106,7 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
         _badgeProgress = currentProgress;
       });
 
-      // 習慣データから進捗を更新
+      // 習慣データから進捗を更新（ホーム画面で完了した場合のため）
       final habits = widget.habitController.habits;
       if (habits.isNotEmpty) {
         final oldProgress = currentProgress;
@@ -82,14 +118,14 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
           _badgeProgress = newProgress;
         });
 
-        print('🏅 更新後の進捗: 連続${newProgress.currentStreak}日, バッジ${newProgress.unlockedBadgeIds.length}個獲得');
+        print('🏅 更新後の進捗: 連続${newProgress.currentStreak}週, バッジ${newProgress.unlockedBadgeIds.length}個獲得');
 
-        // 新しいバッジを獲得したかチェック
+        // 新しいバッジを獲得したかチェック（ホーム画面で完了した場合）
         final newBadges = _badgeService.getNewlyUnlockedBadges(oldProgress, newProgress);
         if (newBadges.isNotEmpty) {
           // 複数獲得した場合は最高価値のものだけを表示
           final highestBadge = newBadges.reduce((a, b) =>
-            a.requiredDays > b.requiredDays ? a : b
+            a.requiredWeeks > b.requiredWeeks ? a : b
           );
 
           print('🎉 新しいバッジを獲得: ${highestBadge.name}');
@@ -156,35 +192,6 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
 
           final todayHabits = widget.habitController.getTodayHabits();
 
-          if (todayHabits.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.event_available,
-                    size: 80,
-                    color: Colors.grey[400],
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    '今日の習慣はありません',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          color: Colors.grey[600],
-                        ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '新しい習慣を追加してみましょう',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: Colors.grey[500],
-                        ),
-                  ),
-                ],
-              ),
-            );
-          }
-
           return RefreshIndicator(
             onRefresh: () async {
               await widget.habitController.loadHabits();
@@ -213,43 +220,80 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                       onShowBadgeDialog: (badges) => _showBadgeAchievedDialog(context, badges),
                     ),
                   ),
-                // 習慣リスト
-                SliverPadding(
-                  padding: const EdgeInsets.only(top: 8, bottom: 80),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final habit = todayHabits[index];
-                        final today = DateTime.now();
-                        final isCompleted = habit.isCompletedOnDate(today);
+                // 習慣リストまたは案内メッセージ
+                if (todayHabits.isEmpty)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(32.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.event_available,
+                              size: 80,
+                              color: Colors.grey[400],
+                            ),
+                            const SizedBox(height: 24),
+                            Text(
+                              'まだ習慣が登録されていません',
+                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    color: Colors.grey[700],
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              '右下の＋ボタンをタップして\n新しい習慣を追加してみましょう',
+                              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                    color: Colors.grey[600],
+                                  ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.only(top: 8, bottom: 80),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final habit = todayHabits[index];
+                          final today = DateTime.now();
+                          final isCompleted = habit.isCompletedOnDate(today);
 
-                        return _HabitCard(
-                          habit: habit,
-                          isCompleted: isCompleted,
-                          onTap: () async {
-                            await widget.habitController.toggleHabitCompletion(
-                              habit.id,
-                              today,
-                            );
-                            await _loadBadgeProgress();
-                          },
-                          onEdit: () async {
-                            await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => EditHabitScreen(
-                                  habitController: widget.habitController,
-                                  habit: habit,
+                          return _HabitCard(
+                            habit: habit,
+                            isCompleted: isCompleted,
+                            onTap: () async {
+                              await widget.habitController.toggleHabitCompletion(
+                                habit.id,
+                                today,
+                              );
+                              await _loadBadgeProgress();
+                            },
+                            onEdit: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => EditHabitScreen(
+                                    habitController: widget.habitController,
+                                    habit: habit,
+                                  ),
                                 ),
-                              ),
-                            );
-                          },
-                        );
-                      },
-                      childCount: todayHabits.length,
+                              );
+                            },
+                          );
+                        },
+                        childCount: todayHabits.length,
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
           );
@@ -551,7 +595,7 @@ class _BadgeDebugPanelState extends State<_BadgeDebugPanel> {
       if (newBadges.isNotEmpty && mounted) {
         // 複数獲得した場合は最高価値のものだけを表示
         final highestBadge = newBadges.reduce((a, b) =>
-          a.requiredDays > b.requiredDays ? a : b
+          a.requiredWeeks > b.requiredWeeks ? a : b
         );
 
         print('🎉 [DEBUG] 新しいバッジを獲得: ${highestBadge.name}');
@@ -680,7 +724,7 @@ class _BadgeDebugPanelState extends State<_BadgeDebugPanel> {
                             const SizedBox(width: 8),
                             const Expanded(
                               child: Text(
-                                'デバッグモード有効: 習慣完了しても連続日数は固定されます',
+                                'デバッグモード有効: 習慣完了しても連続週数は固定されます',
                                 style: TextStyle(fontSize: 12, color: Colors.red),
                               ),
                             ),
@@ -691,7 +735,7 @@ class _BadgeDebugPanelState extends State<_BadgeDebugPanel> {
                           ],
                         ),
                       ),
-                    // 連続日数設定
+                    // 連続週数設定
                     Row(
                       children: [
                         Expanded(
@@ -699,7 +743,7 @@ class _BadgeDebugPanelState extends State<_BadgeDebugPanel> {
                             controller: _streakController,
                             keyboardType: TextInputType.number,
                             decoration: const InputDecoration(
-                              labelText: '連続日数',
+                              labelText: '連続週数',
                               border: OutlineInputBorder(),
                               isDense: true,
                             ),
@@ -728,11 +772,11 @@ class _BadgeDebugPanelState extends State<_BadgeDebugPanel> {
                         ),
                         ElevatedButton.icon(
                           onPressed: () {
-                            _streakController.text = '30';
+                            _streakController.text = '4';
                             _setStreak();
                           },
                           icon: const Icon(Icons.fast_forward),
-                          label: const Text('30日に設定'),
+                          label: const Text('4週に設定'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.blue,
                             foregroundColor: Colors.white,
@@ -740,11 +784,11 @@ class _BadgeDebugPanelState extends State<_BadgeDebugPanel> {
                         ),
                         ElevatedButton.icon(
                           onPressed: () {
-                            _streakController.text = '100';
+                            _streakController.text = '13';
                             _setStreak();
                           },
                           icon: const Icon(Icons.workspace_premium),
-                          label: const Text('100日に設定'),
+                          label: const Text('13週に設定'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.purple,
                             foregroundColor: Colors.white,
@@ -971,9 +1015,9 @@ class _BadgeAchievedDialogState extends State<_BadgeAchievedDialog>
                     ),
                   ),
                   const SizedBox(height: 8),
-                  // 連続日数
+                  // 連続週数
                   Text(
-                    '${widget.badge.requiredDays}日連続達成！',
+                    '${widget.badge.requiredWeeks}週連続達成！',
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.9),
                       fontSize: 16,

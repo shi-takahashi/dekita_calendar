@@ -7,6 +7,7 @@ import '../models/constellation.dart';
 import '../utils/japanese_calendar_utils.dart';
 import '../services/ad_service.dart';
 import '../services/constellation_service.dart';
+import '../services/badge_service.dart';
 import '../widgets/shooting_star_animation.dart';
 
 class CalendarView extends StatefulWidget {
@@ -20,6 +21,7 @@ class _CalendarViewState extends State<CalendarView> {
   late ValueNotifier<DateTime> _selectedDay;
   DateTime _focusedDay = DateTime.now();
   final _constellationService = ConstellationService();
+  final _badgeService = BadgeService();
 
   @override
   void initState() {
@@ -332,6 +334,32 @@ class _CalendarViewState extends State<CalendarView> {
     }
   }
 
+  /// バッジの進捗を更新
+  /// カレンダー画面では進捗更新のみ行い、アニメーションは表示しない
+  /// 新しいバッジを獲得した場合は未表示フラグを保存
+  Future<void> _updateBadgeProgress(
+    BuildContext context,
+    HabitController habitController,
+  ) async {
+    final habits = habitController.habits;
+
+    if (habits.isNotEmpty) {
+      // 更新前の進捗を取得
+      final oldProgress = await _badgeService.getCurrentProgress();
+
+      // 進捗を更新
+      final newProgress = await _badgeService.updateProgress(habits);
+
+      // 新しいバッジを獲得したかチェック
+      final newBadges = _badgeService.getNewlyUnlockedBadges(oldProgress, newProgress);
+      if (newBadges.isNotEmpty) {
+        print('🎉 [Calendar] 新しいバッジを獲得: ${newBadges.map((b) => b.name).join(", ")}');
+        // ホーム画面で表示するため、未表示フラグを保存
+        await _badgeService.savePendingBadges(newBadges);
+      }
+    }
+  }
+
   /// 習慣の完了状態をトグルする（過去日付の場合は広告を表示）
   Future<void> _handleHabitToggle(
     BuildContext context,
@@ -373,14 +401,16 @@ class _CalendarViewState extends State<CalendarView> {
           onAdClosed: () async {
             // 広告が閉じられたら完了状態にする
             await habitController.toggleHabitCompletion(habit.id, selectedDay);
-            // 星座の進捗を更新
+            // 星座とバッジの進捗を更新
             await _updateConstellationProgress(context, habitController);
+            await _updateBadgeProgress(context, habitController);
           },
           onAdFailedToShow: () async {
             // 広告の表示に失敗した場合でも完了状態にする
             await habitController.toggleHabitCompletion(habit.id, selectedDay);
-            // 星座の進捗を更新
+            // 星座とバッジの進捗を更新
             await _updateConstellationProgress(context, habitController);
+            await _updateBadgeProgress(context, habitController);
             if (context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('広告の読み込みに失敗しましたが、完了状態を変更しました')),
@@ -392,8 +422,9 @@ class _CalendarViewState extends State<CalendarView> {
     } else {
       // 今日の日付、または過去日付で完了→未完了にする場合は広告なしで切り替え
       await habitController.toggleHabitCompletion(habit.id, selectedDay);
-      // 星座の進捗を更新
+      // 星座とバッジの進捗を更新
       await _updateConstellationProgress(context, habitController);
+      await _updateBadgeProgress(context, habitController);
     }
   }
 

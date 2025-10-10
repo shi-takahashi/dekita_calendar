@@ -23,14 +23,14 @@ class BadgeCollectionWidget extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.indigo[900]!,
-            Colors.purple[900]!,
+            Colors.indigo[100]!,
+            Colors.purple[100]!,
           ],
         ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withOpacity(0.1),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -49,10 +49,10 @@ class BadgeCollectionWidget extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       '連続達成',
                       style: TextStyle(
-                        color: Colors.white70,
+                        color: Colors.indigo[700],
                         fontSize: 14,
                       ),
                     ),
@@ -63,17 +63,17 @@ class BadgeCollectionWidget extends StatelessWidget {
                       children: [
                         Text(
                           '${progress.currentStreak}',
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: Colors.indigo[900],
                             fontSize: 36,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         const SizedBox(width: 4),
-                        const Text(
-                          '日',
+                        Text(
+                          '週',
                           style: TextStyle(
-                            color: Colors.white70,
+                            color: Colors.indigo[700],
                             fontSize: 18,
                           ),
                         ),
@@ -85,13 +85,13 @@ class BadgeCollectionWidget extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.indigo[200],
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
                     '$unlockedCount/$totalBadges',
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: Colors.indigo[900],
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
@@ -107,7 +107,7 @@ class BadgeCollectionWidget extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
+                  color: Colors.white.withOpacity(0.6),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -124,17 +124,17 @@ class BadgeCollectionWidget extends StatelessWidget {
                         children: [
                           Text(
                             '次の目標: ${nextBadge.name}',
-                            style: const TextStyle(
-                              color: Colors.white,
+                            style: TextStyle(
+                              color: Colors.indigo[900],
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'あと${nextBadge.requiredDays - progress.currentStreak}日',
-                            style: const TextStyle(
-                              color: Colors.white70,
+                            'あと${nextBadge.requiredWeeks - progress.currentStreak}週',
+                            style: TextStyle(
+                              color: Colors.indigo[700],
                               fontSize: 12,
                             ),
                           ),
@@ -195,9 +195,9 @@ class _BadgeItem extends StatelessWidget {
           height: 56,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: isUnlocked ? badge.color : Colors.grey[800],
+            color: isUnlocked ? badge.color : Colors.grey[300],
             border: Border.all(
-              color: isUnlocked ? Colors.white.withOpacity(0.3) : Colors.grey[700]!,
+              color: isUnlocked ? badge.color.withOpacity(0.3) : Colors.grey[400]!,
               width: 2,
             ),
             boxShadow: isUnlocked
@@ -212,7 +212,7 @@ class _BadgeItem extends StatelessWidget {
           ),
           child: Icon(
             badge.icon,
-            color: isUnlocked ? Colors.white : Colors.grey[600],
+            color: isUnlocked ? Colors.white : Colors.grey[500],
             size: 28,
           ),
         ),
@@ -221,15 +221,15 @@ class _BadgeItem extends StatelessWidget {
         Text(
           badge.name,
           style: TextStyle(
-            color: isUnlocked ? Colors.white : Colors.grey[600],
+            color: isUnlocked ? Colors.indigo[900] : Colors.grey[500],
             fontSize: 10,
             fontWeight: isUnlocked ? FontWeight.bold : FontWeight.normal,
           ),
         ),
         Text(
-          '${badge.requiredDays}日',
+          '${badge.requiredWeeks}週',
           style: TextStyle(
-            color: isUnlocked ? Colors.white70 : Colors.grey[700],
+            color: isUnlocked ? Colors.indigo[700] : Colors.grey[500],
             fontSize: 9,
           ),
         ),

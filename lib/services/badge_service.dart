@@ -9,6 +9,7 @@ class BadgeService {
   static const String _progressKey = 'badge_progress';
   static const String _debugModeKey = 'badge_debug_mode';
   static const String _debugStreakKey = 'badge_debug_streak';
+  static const String _pendingBadgesKey = 'badge_pending_badges';
 
   /// 利用可能なバッジ一覧
   static const List<AchievementBadge> availableBadges = [
@@ -16,65 +17,41 @@ class BadgeService {
       id: 'bronze',
       name: 'ブロンズ',
       type: BadgeType.bronze,
-      requiredDays: 3,
+      requiredWeeks: 1,
       color: Color(0xFFCD7F32),
-      icon: Icons.star,
+      icon: Icons.star_outline, // 星の輪郭
     ),
     AchievementBadge(
       id: 'silver',
       name: 'シルバー',
       type: BadgeType.silver,
-      requiredDays: 7,
+      requiredWeeks: 2,
       color: Color(0xFFC0C0C0),
-      icon: Icons.star,
+      icon: Icons.star, // 塗りつぶし星
     ),
     AchievementBadge(
       id: 'gold',
       name: 'ゴールド',
       type: BadgeType.gold,
-      requiredDays: 14,
+      requiredWeeks: 4,
       color: Color(0xFFFFD700),
-      icon: Icons.star,
+      icon: Icons.stars, // 複数の星
     ),
     AchievementBadge(
       id: 'platinum',
       name: 'プラチナ',
       type: BadgeType.platinum,
-      requiredDays: 21,
+      requiredWeeks: 12,
       color: Color(0xFFE5E4E2),
-      icon: Icons.stars,
+      icon: Icons.military_tech, // メダル
     ),
     AchievementBadge(
       id: 'diamond',
       name: 'ダイヤモンド',
       type: BadgeType.diamond,
-      requiredDays: 30,
+      requiredWeeks: 52,
       color: Color(0xFFB9F2FF),
-      icon: Icons.stars,
-    ),
-    AchievementBadge(
-      id: 'master',
-      name: 'マスター',
-      type: BadgeType.master,
-      requiredDays: 50,
-      color: Color(0xFF9370DB),
-      icon: Icons.military_tech,
-    ),
-    AchievementBadge(
-      id: 'legend',
-      name: 'レジェンド',
-      type: BadgeType.legend,
-      requiredDays: 75,
-      color: Color(0xFFFF6347),
-      icon: Icons.military_tech,
-    ),
-    AchievementBadge(
-      id: 'ultimate',
-      name: 'アルティメット',
-      type: BadgeType.ultimate,
-      requiredDays: 100,
-      color: Color(0xFFFF1493),
-      icon: Icons.workspace_premium,
+      icon: Icons.workspace_premium, // プレミアムバッジ
     ),
   ];
 
@@ -114,7 +91,70 @@ class BadgeService {
     return scheduledHabits.every((habit) => habit.isCompletedOnDate(date));
   }
 
-  /// 全習慣達成の連続日数を計算
+  /// 指定日を含む週の開始日（月曜日）を取得
+  DateTime _getWeekStart(DateTime date) {
+    final normalized = DateTime(date.year, date.month, date.day);
+    final weekday = normalized.weekday; // 月曜=1, 日曜=7
+    final daysToSubtract = weekday - 1; // 月曜なら0、火曜なら1、...、日曜なら6
+    return normalized.subtract(Duration(days: daysToSubtract));
+  }
+
+  /// 指定した週が全てクリアされているか
+  bool _isWeekCompleted(List<Habit> habits, DateTime weekStart) {
+    if (habits.isEmpty) return false;
+
+    // その週の月曜〜日曜までチェック
+    for (int i = 0; i < 7; i++) {
+      final checkDate = weekStart.add(Duration(days: i));
+
+      // その日に予定されている習慣を取得
+      final scheduledHabits = habits.where((habit) {
+        return habit.isScheduledOn(checkDate);
+      }).toList();
+
+      // 予定された習慣が1つでもあり、全て完了していない場合は週未達成
+      if (scheduledHabits.isNotEmpty) {
+        final allCompleted = scheduledHabits.every((habit) =>
+          habit.isCompletedOnDate(checkDate)
+        );
+        if (!allCompleted) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
+  /// 週単位の連続達成数を計算
+  int calculateWeeklyStreak(List<Habit> habits) {
+    if (habits.isEmpty) return 0;
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final thisWeekStart = _getWeekStart(today);
+
+    int streak = 0;
+
+    // 今週が完了している場合は今週から、未完了の場合は先週から開始
+    final thisWeekCompleted = _isWeekCompleted(habits, thisWeekStart);
+    final startOffset = thisWeekCompleted ? 0 : 1;
+
+    // 最大52週（1年分）まで遡る
+    for (int i = startOffset; i < 52; i++) {
+      final checkWeekStart = thisWeekStart.subtract(Duration(days: i * 7));
+
+      if (_isWeekCompleted(habits, checkWeekStart)) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+
+    return streak;
+  }
+
+  /// 全習慣達成の連続日数を計算（旧バージョン - 参考用）
   int calculateAllHabitsStreak(List<Habit> habits) {
     if (habits.isEmpty) return 0;
 
@@ -122,7 +162,12 @@ class BadgeService {
     final today = DateTime(now.year, now.month, now.day);
     int streak = 0;
 
-    for (int i = 0; i < 365; i++) {
+    // 今日が完了している場合は今日から、未完了の場合は昨日から開始
+    // （今日はまだ途中なので、未完了でも昨日までの連続は保持）
+    final todayCompleted = _isAllHabitsCompletedOnDate(habits, today);
+    final startOffset = todayCompleted ? 0 : 1;
+
+    for (int i = startOffset; i < 365; i++) {
       final checkDate = today.subtract(Duration(days: i));
 
       if (_isAllHabitsCompletedOnDate(habits, checkDate)) {
@@ -140,24 +185,28 @@ class BadgeService {
     final prefs = await SharedPreferences.getInstance();
     final debugMode = prefs.getBool(_debugModeKey) ?? false;
 
+    // 現在の保存済み進捗を取得
+    final currentProgress = await getCurrentProgress();
+
     // デバッグモードの場合は手動設定値を使用
     final streak = debugMode
         ? (prefs.getInt(_debugStreakKey) ?? 0)
-        : calculateAllHabitsStreak(habits);
+        : calculateWeeklyStreak(habits);
 
-    print('🏅 バッジ進捗更新: 連続${streak}日');
+    print('🏅 バッジ進捗更新: 連続${streak}週');
 
-    // 獲得済みバッジを判定
-    final unlockedBadgeIds = <String>[];
+    // 既存の獲得済みバッジを保持しつつ、新しいバッジを追加
+    // 一度獲得したバッジは、連続週数が下がっても保持する
+    final unlockedBadgeIds = Set<String>.from(currentProgress.unlockedBadgeIds);
     for (final badge in availableBadges) {
-      if (streak >= badge.requiredDays) {
+      if (streak >= badge.requiredWeeks) {
         unlockedBadgeIds.add(badge.id);
       }
     }
 
     final newProgress = BadgeProgress(
       currentStreak: streak,
-      unlockedBadgeIds: unlockedBadgeIds,
+      unlockedBadgeIds: unlockedBadgeIds.toList(),
       lastUpdated: DateTime.now(),
     );
 
@@ -199,7 +248,7 @@ class BadgeService {
 
   // ========== デバッグ用メソッド ==========
 
-  /// [デバッグ専用] 連続日数を強制的に設定
+  /// [デバッグ専用] 連続週数を強制的に設定
   Future<void> debugSetStreak(int streak) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_debugModeKey, true);
@@ -207,7 +256,7 @@ class BadgeService {
 
     final unlockedBadgeIds = <String>[];
     for (final badge in availableBadges) {
-      if (streak >= badge.requiredDays) {
+      if (streak >= badge.requiredWeeks) {
         unlockedBadgeIds.add(badge.id);
       }
     }
@@ -219,7 +268,7 @@ class BadgeService {
     );
 
     await saveProgress(newProgress);
-    print('🐛 [DEBUG] 連続日数を${streak}日に設定');
+    print('🐛 [DEBUG] 連続週数を${streak}週に設定');
   }
 
   /// [デバッグ専用] デバッグモードを解除
@@ -243,5 +292,42 @@ class BadgeService {
   Future<bool> isDebugModeEnabled() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(_debugModeKey) ?? false;
+  }
+
+  // ========== 未表示バッジ管理 ==========
+
+  /// 未表示のバッジを保存
+  Future<void> savePendingBadges(List<AchievementBadge> badges) async {
+    if (badges.isEmpty) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final badgeIds = badges.map((b) => b.id).toList();
+    await prefs.setStringList(_pendingBadgesKey, badgeIds);
+    print('💾 未表示バッジを保存: ${badgeIds.join(", ")}');
+  }
+
+  /// 未表示のバッジを取得
+  Future<List<AchievementBadge>> getPendingBadges() async {
+    final prefs = await SharedPreferences.getInstance();
+    final badgeIds = prefs.getStringList(_pendingBadgesKey) ?? [];
+
+    if (badgeIds.isEmpty) return [];
+
+    final badges = badgeIds
+        .map((id) => availableBadges.firstWhere(
+              (b) => b.id == id,
+              orElse: () => availableBadges.first,
+            ))
+        .toList();
+
+    print('📖 未表示バッジを取得: ${badgeIds.join(", ")}');
+    return badges;
+  }
+
+  /// 未表示のバッジをクリア
+  Future<void> clearPendingBadges() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_pendingBadgesKey);
+    print('🗑️ 未表示バッジをクリア');
   }
 }

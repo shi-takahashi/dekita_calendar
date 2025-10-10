@@ -14,7 +14,7 @@ class AdService {
   /// - ユーザーが自由に変更できないよう、設定画面には表示しない
   ///
   /// true: 広告を表示、false: 広告を非表示
-  static const bool showBannerAds = true;
+  static const bool showAds = false; // この1行を変更するだけでバナー広告とインタースティシャル広告の両方をON/OFF
 
   // インタースティシャル広告のインスタンス保持
   static InterstitialAd? _interstitialAd;
@@ -71,17 +71,13 @@ class AdService {
     await _preloadInterstitialAd();
 
     // バナー広告を事前にいくつか読み込んでおく
-    if (showBannerAds) {
+    if (showAds) {
       _preloadBannerAds();
     }
   }
 
   /// バナー広告を作成
-  static BannerAd createBannerAd({
-    required Function() onAdLoaded,
-    required Function() onAdFailedToLoad,
-    AdSize adSize = AdSize.banner,
-  }) {
+  static BannerAd createBannerAd({required Function() onAdLoaded, required Function() onAdFailedToLoad, AdSize adSize = AdSize.banner}) {
     final adUnitId = bannerAdUnitId;
     print('バナー広告作成開始: $adUnitId (${_isDebug ? "テスト広告" : "本番広告"}, サイズ: $adSize)');
 
@@ -118,7 +114,7 @@ class AdService {
 
   /// バナー広告を事前に複数読み込み
   static void _preloadBannerAds() async {
-    if (_isPreloadingBanners || !showBannerAds) return;
+    if (_isPreloadingBanners || !showAds) return;
 
     _isPreloadingBanners = true;
     print('バナー広告の事前読み込み開始');
@@ -183,7 +179,7 @@ class AdService {
   /// インタースティシャル広告を事前読み込み
   static Future<void> _preloadInterstitialAd() async {
     // 広告表示フラグがfalseの場合は読み込まない
-    if (!showBannerAds) {
+    if (!showAds) {
       print('インタースティシャル広告: 表示フラグがfalseのため事前読み込みをスキップ');
       return;
     }
@@ -221,13 +217,9 @@ class AdService {
   }
 
   /// 事前読み込み済みのインタースティシャル広告を表示
-  static void showInterstitialAd({
-    Function()? onAdShown,
-    Function()? onAdClosed,
-    Function()? onAdFailedToShow,
-  }) {
+  static void showInterstitialAd({Function()? onAdShown, Function()? onAdClosed, Function()? onAdFailedToShow}) {
     // 広告表示フラグがfalseの場合は何もしない
-    if (!showBannerAds) {
+    if (!showAds) {
       print('インタースティシャル広告: 表示フラグがfalseのためスキップ');
       onAdClosed?.call();
       return;
