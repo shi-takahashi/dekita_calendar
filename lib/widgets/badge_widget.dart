@@ -13,7 +13,8 @@ class BadgeCollectionWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nextBadge = BadgeService().getNextBadge(progress);
+    final badgeService = BadgeService();
+    final nextBadge = badgeService.getNextBadge(progress);
     final totalBadges = BadgeService.availableBadges.length;
     final unlockedCount = progress.unlockedBadgeIds.length;
 
@@ -46,40 +47,64 @@ class BadgeCollectionWidget extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '連続達成',
-                      style: TextStyle(
-                        color: Colors.indigo[700],
-                        fontSize: 14,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 現在の連続週数
+                      Text(
+                        '現在の連続達成',
+                        style: TextStyle(
+                          color: Colors.indigo[700],
+                          fontSize: 14,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
-                      children: [
-                        Text(
-                          '${progress.currentStreak}',
-                          style: TextStyle(
-                            color: Colors.indigo[900],
-                            fontSize: 36,
-                            fontWeight: FontWeight.bold,
+                      const SizedBox(height: 4),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          Text(
+                            '${progress.currentStreak}',
+                            style: TextStyle(
+                              color: Colors.indigo[900],
+                              fontSize: 36,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '週',
-                          style: TextStyle(
-                            color: Colors.indigo[700],
-                            fontSize: 18,
+                          const SizedBox(width: 4),
+                          Text(
+                            '週',
+                            style: TextStyle(
+                              color: Colors.indigo[700],
+                              fontSize: 18,
+                            ),
                           ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      // 最高記録（履歴から計算）
+                      if (progress.maxStreak > 0)
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.emoji_events,
+                              size: 16,
+                              color: Colors.amber[700],
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '最高記録: ${progress.maxStreak}週',
+                              style: TextStyle(
+                                color: Colors.indigo[600],
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
                 // バッジカウント
                 Container(

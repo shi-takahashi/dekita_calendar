@@ -63,6 +63,7 @@ class BadgeService {
     if (json == null) {
       return const BadgeProgress(
         currentStreak: 0,
+        maxStreak: 0,
         unlockedBadgeIds: [],
       );
     }
@@ -103,9 +104,17 @@ class BadgeService {
   bool _isWeekCompleted(List<Habit> habits, DateTime weekStart) {
     if (habits.isEmpty) return false;
 
-    // その週の月曜〜日曜までチェック
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    // その週の月曜〜日曜までチェック（ただし今日まで）
     for (int i = 0; i < 7; i++) {
       final checkDate = weekStart.add(Duration(days: i));
+
+      // 未来の日付はスキップ（まだ完了できないので）
+      if (checkDate.isAfter(today)) {
+        continue;
+      }
 
       // その日に予定されている習慣を取得
       final scheduledHabits = habits.where((habit) {
@@ -126,32 +135,98 @@ class BadgeService {
     return true;
   }
 
-  /// 週単位の連続達成数を計算
-  int calculateWeeklyStreak(List<Habit> habits) {
-    if (habits.isEmpty) return 0;
+  /// 今週の予定日が全て過去になったかチェック（未完了確定判定用）
+  bool _isWeekDefined(List<Habit> habits, DateTime weekStart) {
+    if (habits.isEmpty) return true;
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    // その週の月曜〜日曜をチェック
+    for (int i = 0; i < 7; i++) {
+      final checkDate = weekStart.add(Duration(days: i));
+
+      // その日に予定されている習慣があるかチェック
+      final hasScheduledHabits = habits.any((habit) => habit.isScheduledOn(checkDate));
+
+      // 予定日があり、かつ未来の場合 → まだ完了可能（未確定）
+      if (hasScheduledHabits && !checkDate.isBefore(today)) {
+        return false;
+      }
+    }
+
+    // 全ての予定日が過去になった（確定）
+    return true;
+  }
+
+  /// 週単位の連続達成数を計算（現在と最高の両方を返す）
+  Map<String, int> calculateWeeklyStreaks(List<Habit> habits) {
+    if (habits.isEmpty) {
+      return {'current': 0, 'max': 0};
+    }
 
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final thisWeekStart = _getWeekStart(today);
 
-    int streak = 0;
+    int maxStreak = 0;
+    int tempStreak = 0;
 
-    // 今週が完了している場合は今週から、未完了の場合は先週から開始
+    // 今週が完了しているかチェック
     final thisWeekCompleted = _isWeekCompleted(habits, thisWeekStart);
-    final startOffset = thisWeekCompleted ? 0 : 1;
+    // 今週の予定日が全て過去になったか（確定したか）
+    final thisWeekDefined = _isWeekDefined(habits, thisWeekStart);
 
-    // 最大52週（1年分）まで遡る
-    for (int i = startOffset; i < 52; i++) {
+    int currentStreak = 0;
+
+    // 今週の状態に応じて開始位置を決定
+    if (thisWeekCompleted) {
+      // 今週完了 → 今週から連続カウント
+      for (int i = 0; i < 52; i++) {
+        final checkWeekStart = thisWeekStart.subtract(Duration(days: i * 7));
+        if (_isWeekCompleted(habits, checkWeekStart)) {
+          currentStreak++;
+        } else {
+          break;
+        }
+      }
+    } else if (!thisWeekDefined) {
+      // 今週未完了だが、まだ予定日が来ていない → 先週から連続カウント
+      for (int i = 1; i < 52; i++) {
+        final checkWeekStart = thisWeekStart.subtract(Duration(days: i * 7));
+        if (_isWeekCompleted(habits, checkWeekStart)) {
+          currentStreak++;
+        } else {
+          break;
+        }
+      }
+    } else {
+      // 今週の予定日が全て過ぎて未完了 → 連続途切れ（0週）
+      currentStreak = 0;
+    }
+
+    // 全履歴を見て最大連続週数を計算
+    for (int i = 0; i < 52; i++) {
       final checkWeekStart = thisWeekStart.subtract(Duration(days: i * 7));
+      final weekCompleted = _isWeekCompleted(habits, checkWeekStart);
 
-      if (_isWeekCompleted(habits, checkWeekStart)) {
-        streak++;
+      if (weekCompleted) {
+        tempStreak++;
+        if (tempStreak > maxStreak) {
+          maxStreak = tempStreak;
+        }
       } else {
-        break;
+        tempStreak = 0;
       }
     }
 
-    return streak;
+    print('📊 今週: ${thisWeekCompleted ? "完了" : "未完了"}${!thisWeekCompleted && !thisWeekDefined ? "(まだ予定日あり)" : thisWeekDefined ? "(確定)" : ""} → 現在${currentStreak}週, 過去最高${maxStreak}週');
+    return {'current': currentStreak, 'max': maxStreak};
+  }
+
+  /// 現在の連続週数のみを計算（後方互換性のため残す）
+  int calculateWeeklyStreak(List<Habit> habits) {
+    return calculateWeeklyStreaks(habits)['current']!;
   }
 
   /// 全習慣達成の連続日数を計算（旧バージョン - 参考用）
@@ -188,24 +263,34 @@ class BadgeService {
     // 現在の保存済み進捗を取得
     final currentProgress = await getCurrentProgress();
 
-    // デバッグモードの場合は手動設定値を使用
-    final streak = debugMode
-        ? (prefs.getInt(_debugStreakKey) ?? 0)
-        : calculateWeeklyStreak(habits);
+    int currentStreak;
+    int maxStreak;
 
-    print('🏅 バッジ進捗更新: 連続${streak}週');
+    if (debugMode) {
+      // デバッグモードの場合は手動設定値を使用
+      currentStreak = prefs.getInt(_debugStreakKey) ?? 0;
+      maxStreak = currentStreak > currentProgress.maxStreak ? currentStreak : currentProgress.maxStreak;
+    } else {
+      // 履歴から現在と最高の両方を計算
+      final streaks = calculateWeeklyStreaks(habits);
+      currentStreak = streaks['current']!;
+      maxStreak = streaks['max']!;
+    }
+
+    print('🏅 バッジ進捗更新: 現在${currentStreak}週 (過去最高: ${maxStreak}週)');
 
     // 既存の獲得済みバッジを保持しつつ、新しいバッジを追加
     // 一度獲得したバッジは、連続週数が下がっても保持する
     final unlockedBadgeIds = Set<String>.from(currentProgress.unlockedBadgeIds);
     for (final badge in availableBadges) {
-      if (streak >= badge.requiredWeeks) {
+      if (currentStreak >= badge.requiredWeeks) {
         unlockedBadgeIds.add(badge.id);
       }
     }
 
     final newProgress = BadgeProgress(
-      currentStreak: streak,
+      currentStreak: currentStreak,
+      maxStreak: maxStreak,
       unlockedBadgeIds: unlockedBadgeIds.toList(),
       lastUpdated: DateTime.now(),
     );
@@ -254,6 +339,10 @@ class BadgeService {
     await prefs.setBool(_debugModeKey, true);
     await prefs.setInt(_debugStreakKey, streak);
 
+    // 現在の最高記録を取得
+    final currentProgress = await getCurrentProgress();
+    final maxStreak = streak > currentProgress.maxStreak ? streak : currentProgress.maxStreak;
+
     final unlockedBadgeIds = <String>[];
     for (final badge in availableBadges) {
       if (streak >= badge.requiredWeeks) {
@@ -263,12 +352,13 @@ class BadgeService {
 
     final newProgress = BadgeProgress(
       currentStreak: streak,
+      maxStreak: maxStreak,
       unlockedBadgeIds: unlockedBadgeIds,
       lastUpdated: DateTime.now(),
     );
 
     await saveProgress(newProgress);
-    print('🐛 [DEBUG] 連続週数を${streak}週に設定');
+    print('🐛 [DEBUG] 連続週数を${streak}週に設定 (最高: ${maxStreak}週)');
   }
 
   /// [デバッグ専用] デバッグモードを解除

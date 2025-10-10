@@ -231,13 +231,17 @@ class HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(
-                              Icons.event_available,
+                              widget.habitController.habits.isEmpty
+                                  ? Icons.event_available
+                                  : Icons.free_breakfast,
                               size: 80,
                               color: Colors.grey[400],
                             ),
                             const SizedBox(height: 24),
                             Text(
-                              'まだ習慣が登録されていません',
+                              widget.habitController.habits.isEmpty
+                                  ? 'まだ習慣が登録されていません'
+                                  : '今日の習慣はありません',
                               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                     color: Colors.grey[700],
                                     fontWeight: FontWeight.bold,
@@ -246,7 +250,9 @@ class HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                             ),
                             const SizedBox(height: 12),
                             Text(
-                              '右下の＋ボタンをタップして\n新しい習慣を追加してみましょう',
+                              widget.habitController.habits.isEmpty
+                                  ? '右下の＋ボタンをタップして\n新しい習慣を追加してみましょう'
+                                  : '今日は予定されている習慣がありません\nゆっくり休んでください',
                               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                                     color: Colors.grey[600],
                                   ),
