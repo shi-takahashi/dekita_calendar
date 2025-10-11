@@ -107,13 +107,13 @@ class BadgeService {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
-    // その週の月曜〜日曜までチェック（ただし今日まで）
+    // その週の月曜〜日曜までの7日間全てチェック
     for (int i = 0; i < 7; i++) {
       final checkDate = weekStart.add(Duration(days: i));
 
-      // 未来の日付はスキップ（まだ完了できないので）
+      // 未来の日付がある場合は、その週はまだ完了していない
       if (checkDate.isAfter(today)) {
-        continue;
+        return false;
       }
 
       // その日に予定されている習慣を取得

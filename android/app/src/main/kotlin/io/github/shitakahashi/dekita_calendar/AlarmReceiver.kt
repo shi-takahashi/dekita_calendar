@@ -10,6 +10,8 @@ import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import android.util.Log
+import org.json.JSONArray
+import org.json.JSONObject
 import java.util.Calendar
 
 class AlarmReceiver : BroadcastReceiver() {
@@ -24,19 +26,90 @@ class AlarmReceiver : BroadcastReceiver() {
         Log.d(TAG, "AlarmReceiver triggered")
 
         val habitId = intent.getStringExtra("habitId") ?: "unknown"
-        val habitTitle = intent.getStringExtra("habitTitle") ?: "習慣"
-        val frequency = intent.getStringExtra("frequency") ?: "unknown"
-        val dayOfWeek = intent.getIntExtra("dayOfWeek", -1)
-        val alarmHour = intent.getIntExtra("alarmHour", 9)
-        val alarmMinute = intent.getIntExtra("alarmMinute", 0)
 
-        Log.d(TAG, "Habit: $habitTitle, ID: $habitId, Frequency: $frequency, DayOfWeek: $dayOfWeek, Time: $alarmHour:$alarmMinute")
+        // SharedPreferencesから最新の習慣情報を取得
+        val habitData = getHabitFromPreferences(context, habitId)
+
+        if (habitData == null) {
+            Log.e(TAG, "Habit not found in SharedPreferences: $habitId")
+            return
+        }
+
+        val habitTitle = habitData.getString("title") ?: "習慣"
+        val frequency = when (habitData.getInt("frequency")) {
+            0 -> "daily"
+            1 -> "weekly"
+            else -> "unknown"
+        }
+        val notificationTimeStr = habitData.optString("notificationTime", null)
+        val specificDays = habitData.optJSONArray("specificDays")
+
+        if (notificationTimeStr == null) {
+            Log.d(TAG, "No notification time set for habit: $habitId")
+            return
+        }
+
+        // ISO8601形式から時刻を抽出
+        val notificationTime = parseIso8601ToCalendar(notificationTimeStr)
+        val alarmHour = notificationTime.get(Calendar.HOUR_OF_DAY)
+        val alarmMinute = notificationTime.get(Calendar.MINUTE)
+
+        Log.d(TAG, "Habit: $habitTitle, ID: $habitId, Frequency: $frequency, Time: $alarmHour:$alarmMinute")
 
         // 通知を表示
         showNotification(context, habitId, habitTitle, frequency)
 
         // 次のアラームを再設定
-        rescheduleAlarm(context, habitId, habitTitle, frequency, dayOfWeek, alarmHour, alarmMinute)
+        if (frequency == "daily") {
+            rescheduleAlarm(context, habitId, habitTitle, frequency, -1, alarmHour, alarmMinute)
+        } else if (frequency == "weekly" && specificDays != null) {
+            // 今日の曜日を取得してアラームを再設定
+            val todayWeekday = Calendar.getInstance().get(Calendar.DAY_OF_WEEK)
+            // CalendarのDAY_OF_WEEK (1=日曜, 2=月曜, ..., 7=土曜) をFlutterのweekday (1=月曜, 7=日曜) に変換
+            val todayFlutterWeekday = if (todayWeekday == Calendar.SUNDAY) 7 else todayWeekday - 1
+
+            rescheduleAlarm(context, habitId, habitTitle, frequency, todayFlutterWeekday, alarmHour, alarmMinute)
+        }
+    }
+
+    private fun getHabitFromPreferences(context: Context, habitId: String): JSONObject? {
+        val sharedPreferences = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+        val habitsJson = sharedPreferences.getString("flutter.habits", null)
+
+        if (habitsJson == null) {
+            Log.e(TAG, "No habits found in SharedPreferences")
+            return null
+        }
+
+        try {
+            val habitsArray = JSONArray(habitsJson)
+            for (i in 0 until habitsArray.length()) {
+                val habit = habitsArray.getJSONObject(i)
+                if (habit.getString("id") == habitId) {
+                    return habit
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error parsing habits JSON: ${e.message}")
+        }
+
+        return null
+    }
+
+    private fun parseIso8601ToCalendar(iso8601: String): Calendar {
+        val calendar = Calendar.getInstance()
+        try {
+            // ISO8601形式: "2024-01-01T09:30:00.000"
+            val timePart = iso8601.substring(11, 16) // "09:30"
+            val parts = timePart.split(":")
+            calendar.set(Calendar.HOUR_OF_DAY, parts[0].toInt())
+            calendar.set(Calendar.MINUTE, parts[1].toInt())
+        } catch (e: Exception) {
+            Log.e(TAG, "Error parsing ISO8601 time: ${e.message}")
+            calendar.set(Calendar.HOUR_OF_DAY, 9)
+            calendar.set(Calendar.MINUTE, 0)
+        }
+        return calendar
     }
     
     private fun showNotification(context: Context, habitId: String, habitTitle: String, frequency: String) {
@@ -115,7 +188,7 @@ class AlarmReceiver : BroadcastReceiver() {
 
                 Log.d(TAG, "Rescheduling daily alarm for tomorrow at $alarmHour:$alarmMinute: $nextTriggerTime")
 
-                scheduleNextAlarm(context, alarmManager, alarmId, nextTriggerTime, habitId, habitTitle, frequency, -1, alarmHour, alarmMinute)
+                scheduleNextAlarm(context, alarmManager, alarmId, nextTriggerTime, habitId)
             }
             "weekly" -> {
                 // 週次の場合：翌週の同じ曜日・同じ時刻にアラームを設定
@@ -136,7 +209,7 @@ class AlarmReceiver : BroadcastReceiver() {
 
                     Log.d(TAG, "Rescheduling weekly alarm for next week (Flutter day $dayOfWeek = Calendar day $calendarDayOfWeek) at $alarmHour:$alarmMinute: $nextTriggerTime")
 
-                    scheduleNextAlarm(context, alarmManager, alarmId, nextTriggerTime, habitId, habitTitle, frequency, dayOfWeek, alarmHour, alarmMinute)
+                    scheduleNextAlarm(context, alarmManager, alarmId, nextTriggerTime, habitId)
                 } else {
                     Log.e(TAG, "Weekly frequency but dayOfWeek is not set!")
                 }
@@ -152,22 +225,11 @@ class AlarmReceiver : BroadcastReceiver() {
         alarmManager: AlarmManager,
         alarmId: Int,
         triggerTimeMillis: Long,
-        habitId: String,
-        habitTitle: String,
-        frequency: String,
-        dayOfWeek: Int,
-        alarmHour: Int,
-        alarmMinute: Int
+        habitId: String
     ) {
+        // habitIdのみを渡す（最新情報はSharedPreferencesから取得）
         val intent = Intent(context, AlarmReceiver::class.java).apply {
             putExtra("habitId", habitId)
-            putExtra("habitTitle", habitTitle)
-            putExtra("frequency", frequency)
-            putExtra("alarmHour", alarmHour)
-            putExtra("alarmMinute", alarmMinute)
-            if (dayOfWeek != -1) {
-                putExtra("dayOfWeek", dayOfWeek)
-            }
         }
 
         val pendingIntent = PendingIntent.getBroadcast(

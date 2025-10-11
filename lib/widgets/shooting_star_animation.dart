@@ -22,6 +22,7 @@ class ShootingStarAnimation extends StatefulWidget {
       context: context,
       barrierDismissible: false,
       barrierColor: Colors.black54, // 半透明の黒背景で見やすくする
+      useRootNavigator: false, // Heroエラー回避のため
       builder: (context) => ShootingStarAnimation(
         onComplete: () => Navigator.of(context).pop(),
         badge: badge,
