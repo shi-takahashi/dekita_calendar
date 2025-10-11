@@ -280,10 +280,10 @@ class BadgeService {
     print('🏅 バッジ進捗更新: 現在${currentStreak}週 (過去最高: ${maxStreak}週)');
 
     // 既存の獲得済みバッジを保持しつつ、新しいバッジを追加
-    // 一度獲得したバッジは、連続週数が下がっても保持する
+    // バッジ獲得判定は過去最高記録で行う（一度達成すれば獲得）
     final unlockedBadgeIds = Set<String>.from(currentProgress.unlockedBadgeIds);
     for (final badge in availableBadges) {
-      if (currentStreak >= badge.requiredWeeks) {
+      if (maxStreak >= badge.requiredWeeks) {
         unlockedBadgeIds.add(badge.id);
       }
     }
@@ -343,9 +343,10 @@ class BadgeService {
     final currentProgress = await getCurrentProgress();
     final maxStreak = streak > currentProgress.maxStreak ? streak : currentProgress.maxStreak;
 
+    // バッジ獲得判定は過去最高記録で行う
     final unlockedBadgeIds = <String>[];
     for (final badge in availableBadges) {
-      if (streak >= badge.requiredWeeks) {
+      if (maxStreak >= badge.requiredWeeks) {
         unlockedBadgeIds.add(badge.id);
       }
     }
