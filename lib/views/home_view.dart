@@ -1,9 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../controllers/habit_controller.dart';
 import '../models/habit.dart';
 import '../models/badge.dart';
 import '../services/badge_service.dart';
+import '../services/native_alarm_notification_service.dart';
 import '../widgets/badge_widget.dart';
 import '../widgets/shooting_star_animation.dart';
 import 'add_habit_screen.dart';
@@ -39,6 +41,7 @@ class HomeViewState extends State<HomeView> with WidgetsBindingObserver {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       widget.habitController.loadHabits();
       _loadBadgeProgress();
+      _checkAndRequestNotificationPermission();
     });
   }
 
@@ -166,6 +169,124 @@ class HomeViewState extends State<HomeView> with WidgetsBindingObserver {
       barrierColor: Colors.black.withOpacity(0.7),
       builder: (context) => _BadgeAchievedDialog(badge: badge),
     );
+  }
+
+  /// 初回起動時に通知許可を確認
+  Future<void> _checkAndRequestNotificationPermission() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasAskedPermission = prefs.getBool('has_asked_notification_permission') ?? false;
+
+    if (!hasAskedPermission && mounted) {
+      // 少し待ってから表示（画面が完全に表示されてから）
+      await Future.delayed(const Duration(milliseconds: 800));
+
+      if (!mounted) return;
+
+      // ウェルカムダイアログを表示
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          title: Column(
+            children: [
+              Icon(
+                Icons.celebration,
+                color: Colors.green,
+                size: 48,
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'ようこそ\nできたカレンダーへ',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'このアプリは、習慣を継続してバッジを獲得しながら成長を記録するアプリです。',
+                  style: TextStyle(height: 1.6),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.help_outline, color: Colors.blue, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '使い方がわからない場合は、右上の？ボタンからヘルプをご覧ください',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.blue[800],
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Divider(),
+                const SizedBox(height: 8),
+                const Row(
+                  children: [
+                    Icon(Icons.notifications_active, color: Colors.orange, size: 24),
+                    SizedBox(width: 8),
+                    Text(
+                      'リマインダー通知について',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  '次に表示される画面で「許可」を押すと、リマインダー通知で習慣を忘れないようにできます。\n\n'
+                  '後から設定で変更することもできます。',
+                  style: TextStyle(height: 1.6),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            Center(
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                ),
+                child: const Text('始める'),
+              ),
+            ),
+          ],
+        ),
+      );
+
+      // フラグを保存（次回から表示しない）
+      await prefs.setBool('has_asked_notification_permission', true);
+
+      // 通知許可をリクエスト
+      if (mounted) {
+        final notificationService = NativeAlarmNotificationService();
+        await notificationService.requestPermissions();
+      }
+    }
   }
 
   @override

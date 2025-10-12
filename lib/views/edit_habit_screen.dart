@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/habit.dart';
 import '../controllers/habit_controller.dart';
+import '../services/native_alarm_notification_service.dart';
 
 class EditHabitScreen extends StatefulWidget {
   final HabitController habitController;
@@ -248,7 +249,49 @@ class _EditHabitScreenState extends State<EditHabitScreen> {
                   ? Text('${_notificationTime!.format(context)}')
                   : null,
               value: _enableNotification,
-              onChanged: (value) {
+              onChanged: (value) async {
+                if (value) {
+                  // ONにしようとしたときに通知許可をチェック
+                  final notificationService = NativeAlarmNotificationService();
+                  final isGranted = await notificationService.isNotificationPermissionGranted();
+
+                  if (!isGranted && mounted) {
+                    // 通知許可がない場合、警告ダイアログを表示
+                    final shouldOpenSettings = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Row(
+                          children: [
+                            Icon(Icons.notifications_off, color: Colors.orange),
+                            SizedBox(width: 12),
+                            Text('通知がオフです'),
+                          ],
+                        ),
+                        content: const Text(
+                          '通知が許可されていないため、リマインダーが届きません。\n\n'
+                          'システムの設定画面から、このアプリの通知を許可してください。',
+                          style: TextStyle(height: 1.6),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text('キャンセル'),
+                          ),
+                          ElevatedButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text('設定を開く'),
+                          ),
+                        ],
+                      ),
+                    );
+
+                    if (shouldOpenSettings == true) {
+                      await notificationService.openSettings();
+                    }
+                    return; // ONにしない
+                  }
+                }
+
                 setState(() {
                   _enableNotification = value;
                   if (value && _notificationTime == null) {

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../models/habit.dart';
 
 class NativeAlarmNotificationService {
@@ -57,8 +58,8 @@ class NativeAlarmNotificationService {
       debugPrint('Native alarm notification channel created');
     }
 
-    await _requestPermissions();
-    
+    // 通知許可は後で求める（ホーム画面で説明してから）
+
     // ネイティブのAlarmManagerを初期化
     try {
       final result = await _methodChannel.invokeMethod('initialize');
@@ -71,7 +72,8 @@ class NativeAlarmNotificationService {
     debugPrint('NativeAlarmNotificationService initialized successfully');
   }
 
-  static Future<void> _requestPermissions() async {
+  /// 通知の許可をリクエスト（外部から呼び出し可能）
+  Future<void> requestPermissions() async {
     if (defaultTargetPlatform == TargetPlatform.android) {
       final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
           _notifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
@@ -298,5 +300,18 @@ class NativeAlarmNotificationService {
     } catch (e) {
       return 'Error: $e';
     }
+  }
+
+  /// 通知許可状態をチェック
+  Future<bool> isNotificationPermissionGranted() async {
+    final status = await Permission.notification.status;
+    debugPrint('Notification permission status: $status');
+    return status.isGranted;
+  }
+
+  /// システム設定画面を開く
+  Future<void> openSettings() async {
+    debugPrint('Opening app settings...');
+    await openAppSettings();
   }
 }
