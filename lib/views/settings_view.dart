@@ -4,6 +4,7 @@ import '../controllers/habit_controller.dart';
 import '../models/habit.dart';
 import 'edit_habit_screen.dart';
 import 'add_habit_screen.dart';
+import 'help_screen.dart';
 
 class SettingsView extends StatefulWidget {
   const SettingsView({super.key});
@@ -19,6 +20,17 @@ class _SettingsViewState extends State<SettingsView> {
       appBar: AppBar(
         title: const Text('習慣管理'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const HelpScreen()),
+              );
+            },
+          ),
+        ],
       ),
       body: Consumer<HabitController>(
         builder: (context, habitController, child) {

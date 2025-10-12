@@ -294,6 +294,7 @@ class HomeViewState extends State<HomeView> with WidgetsBindingObserver {
     return Scaffold(
       appBar: AppBar(
         title: const Text('今日の習慣'),
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
           IconButton(
             icon: const Icon(Icons.help_outline),

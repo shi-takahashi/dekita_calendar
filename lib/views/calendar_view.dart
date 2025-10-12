@@ -9,6 +9,7 @@ import '../services/ad_service.dart';
 import '../services/constellation_service.dart';
 import '../services/badge_service.dart';
 import '../widgets/shooting_star_animation.dart';
+import 'help_screen.dart';
 
 class CalendarView extends StatefulWidget {
   const CalendarView({super.key});
@@ -41,6 +42,17 @@ class _CalendarViewState extends State<CalendarView> {
       appBar: AppBar(
         title: const Text('カレンダー'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const HelpScreen()),
+              );
+            },
+          ),
+        ],
       ),
       body: Consumer<HabitController>(
         builder: (context, habitController, child) {

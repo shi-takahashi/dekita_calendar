@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../controllers/habit_controller.dart';
 import '../models/habit.dart';
+import 'help_screen.dart';
 
 class StatisticsView extends StatefulWidget {
   const StatisticsView({super.key});
@@ -25,6 +26,17 @@ class _StatisticsViewState extends State<StatisticsView> with AutomaticKeepAlive
       appBar: AppBar(
         title: const Text('統計'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const HelpScreen()),
+              );
+            },
+          ),
+        ],
       ),
       body: Consumer<HabitController>(
         builder: (context, habitController, child) {
