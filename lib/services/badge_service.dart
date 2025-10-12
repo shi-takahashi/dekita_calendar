@@ -189,7 +189,7 @@ class BadgeService {
     // 今週の状態に応じて開始位置を決定
     if (thisWeekCompleted) {
       // 今週完了 → 今週から連続カウント
-      for (int i = 0; i < 52; i++) {
+      for (int i = 0; i < 999; i++) {
         final checkWeekStart = thisWeekStart.subtract(Duration(days: i * 7));
         if (_isWeekCompleted(habits, checkWeekStart)) {
           currentStreak++;
@@ -199,7 +199,7 @@ class BadgeService {
       }
     } else if (!thisWeekDefined) {
       // 今週未完了だが、まだ予定日が来ていない → 先週から連続カウント
-      for (int i = 1; i < 52; i++) {
+      for (int i = 1; i < 999; i++) {
         final checkWeekStart = thisWeekStart.subtract(Duration(days: i * 7));
         if (_isWeekCompleted(habits, checkWeekStart)) {
           currentStreak++;
@@ -213,7 +213,7 @@ class BadgeService {
     }
 
     // 全履歴を見て最大連続週数を計算
-    for (int i = 0; i < 52; i++) {
+    for (int i = 0; i < 999; i++) {
       final checkWeekStart = thisWeekStart.subtract(Duration(days: i * 7));
       final weekCompleted = _isWeekCompleted(habits, checkWeekStart);
 
