@@ -118,8 +118,8 @@ class _MainScreenState extends State<MainScreen> {
                   label: '統計',
                 ),
                 BottomNavigationBarItem(
-                  icon: Icon(Icons.settings),
-                  label: '設定',
+                  icon: Icon(Icons.checklist),
+                  label: '管理',
                 ),
               ],
               currentIndex: _selectedIndex,
