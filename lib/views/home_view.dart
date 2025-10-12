@@ -8,6 +8,7 @@ import '../widgets/badge_widget.dart';
 import '../widgets/shooting_star_animation.dart';
 import 'add_habit_screen.dart';
 import 'edit_habit_screen.dart';
+import 'help_screen.dart';
 
 class HomeView extends StatefulWidget {
   final HabitController habitController;
@@ -174,9 +175,14 @@ class HomeViewState extends State<HomeView> with WidgetsBindingObserver {
         title: const Text('今日の習慣'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.calendar_today),
+            icon: const Icon(Icons.help_outline),
             onPressed: () {
-              DefaultTabController.of(context).animateTo(1);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const HelpScreen(),
+                ),
+              );
             },
           ),
         ],
