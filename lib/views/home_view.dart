@@ -628,24 +628,19 @@ class _HabitCard extends StatelessWidget {
         final daysDiff = nextDate.difference(today).inDays;
         if (daysDiff == 1) {
           return '明日も続けましょう！';
-        } else if (daysDiff <= 7) {
-          final weekdays = ['月', '火', '水', '木', '金', '土', '日'];
-          final nextWeekday = weekdays[nextDate.weekday - 1];
-          return '次は${nextWeekday}曜日です！';
         } else {
-          return '次回も頑張りましょう！';
+          final weekdays = ['日', '月', '火', '水', '木', '金', '土'];
+          final nextWeekday = nextDate.weekday == 7 ? weekdays[0] : weekdays[nextDate.weekday];
+          return '次は${nextDate.month}/${nextDate.day}($nextWeekday)です！';
         }
     }
   }
 
   DateTime? _getNextScheduledDate(Habit habit, DateTime today) {
-    if (habit.specificDays == null || habit.specificDays!.isEmpty) {
-      return null;
-    }
-
-    for (int i = 1; i <= 7; i++) {
+    // 最大30日先まで探す（開始日・終了日を考慮）
+    for (int i = 1; i <= 30; i++) {
       final nextDate = today.add(Duration(days: i));
-      if (habit.specificDays!.contains(nextDate.weekday)) {
+      if (habit.isScheduledOn(nextDate)) {
         return nextDate;
       }
     }

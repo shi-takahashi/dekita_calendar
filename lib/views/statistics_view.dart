@@ -475,9 +475,10 @@ class _StatisticsViewState extends State<StatisticsView> with AutomaticKeepAlive
     DateTime endDate;
     
     if (period == 0) {
-      // 週間：今週の月曜から日曜まで（固定7日間）
+      // 週間：今週の日曜から土曜まで（固定7日間）
       final weekday = now.weekday;
-      startDate = now.subtract(Duration(days: weekday - 1));
+      final daysFromSunday = weekday == 7 ? 0 : weekday; // 日曜なら0、月曜なら1、...、土曜なら6
+      startDate = now.subtract(Duration(days: daysFromSunday));
       endDate = startDate.add(const Duration(days: 6));
     } else {
       // 月間：今月の1日から末日まで
@@ -519,9 +520,10 @@ class _StatisticsViewState extends State<StatisticsView> with AutomaticKeepAlive
     final List<ChartData> data = [];
     
     if (period == 0) {
-      // 週間：過去4週間の週別達成率（月曜始まりの週で集計）
+      // 週間：過去4週間の週別達成率（日曜始まりの週で集計）
       final currentWeekday = now.weekday;
-      final currentWeekStart = now.subtract(Duration(days: currentWeekday - 1));
+      final daysFromSunday = currentWeekday == 7 ? 0 : currentWeekday; // 日曜なら0、月曜なら1、...、土曜なら6
+      final currentWeekStart = now.subtract(Duration(days: daysFromSunday));
       
       for (int week = 4; week >= 1; week--) {
         final weekStart = currentWeekStart.subtract(Duration(days: week * 7));

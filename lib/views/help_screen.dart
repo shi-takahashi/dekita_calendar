@@ -26,7 +26,7 @@ class HelpScreen extends StatelessWidget {
             context,
             icon: Icons.workspace_premium,
             title: 'バッジシステム',
-            content: '習慣を継続すると、連続週数に応じてバッジを獲得できます。\n\n・4週連続：ブロンズバッジ\n・8週連続：シルバーバッジ\n・13週連続：ゴールドバッジ\n・26週連続：プラチナバッジ\n・52週連続：ダイヤモンドバッジ',
+            content: '習慣を継続すると、連続週数に応じてバッジを獲得できます。\n週の定義：日曜〜土曜\nその週に予定されている全ての習慣を完了すると週クリアです。\n\n・1週連続：ブロンズバッジ\n・2週連続：シルバーバッジ\n・4週連続：ゴールドバッジ\n・12週連続：プラチナバッジ\n・52週連続：ダイヤモンドバッジ',
           ),
           const SizedBox(height: 24),
           _buildSection(

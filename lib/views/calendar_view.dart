@@ -55,7 +55,7 @@ class _CalendarViewState extends State<CalendarView> {
                   focusedDay: _focusedDay,
                   selectedDayPredicate: (day) => isSameDay(_selectedDay.value, day),
                   calendarFormat: CalendarFormat.month,
-                  startingDayOfWeek: StartingDayOfWeek.monday,
+                  startingDayOfWeek: StartingDayOfWeek.sunday,
                   daysOfWeekVisible: true,
                   headerStyle: const HeaderStyle(
                     titleCentered: true,

@@ -92,11 +92,11 @@ class BadgeService {
     return scheduledHabits.every((habit) => habit.isCompletedOnDate(date));
   }
 
-  /// 指定日を含む週の開始日（月曜日）を取得
+  /// 指定日を含む週の開始日（日曜日）を取得
   DateTime _getWeekStart(DateTime date) {
     final normalized = DateTime(date.year, date.month, date.day);
     final weekday = normalized.weekday; // 月曜=1, 日曜=7
-    final daysToSubtract = weekday - 1; // 月曜なら0、火曜なら1、...、日曜なら6
+    final daysToSubtract = weekday == 7 ? 0 : weekday; // 日曜なら0、月曜なら1、...、土曜なら6
     return normalized.subtract(Duration(days: daysToSubtract));
   }
 
@@ -108,30 +108,33 @@ class BadgeService {
     final today = DateTime(now.year, now.month, now.day);
     bool hasAnyScheduledDay = false; // この週に予定日があるかどうか
 
-    // その週の月曜〜日曜までの7日間全てチェック
+    // その週の日曜〜土曜までの7日間全てチェック
     for (int i = 0; i < 7; i++) {
       final checkDate = weekStart.add(Duration(days: i));
-
-      // 未来の日付がある場合は、その週はまだ完了していない
-      if (checkDate.isAfter(today)) {
-        return false;
-      }
 
       // その日に予定されている習慣を取得
       final scheduledHabits = habits.where((habit) {
         return habit.isScheduledOn(checkDate);
       }).toList();
 
-      // 予定された習慣が1つでもある場合
-      if (scheduledHabits.isNotEmpty) {
-        hasAnyScheduledDay = true; // 予定日があることを記録
+      // 予定がない日はスキップ
+      if (scheduledHabits.isEmpty) {
+        continue;
+      }
 
-        final allCompleted = scheduledHabits.every((habit) =>
-          habit.isCompletedOnDate(checkDate)
-        );
-        if (!allCompleted) {
-          return false; // 未完了がある
-        }
+      hasAnyScheduledDay = true; // 予定日があることを記録
+
+      // 未来の予定日がある場合は、その週はまだ完了していない
+      if (checkDate.isAfter(today)) {
+        return false;
+      }
+
+      // 過去または今日の予定日：完了チェック
+      final allCompleted = scheduledHabits.every((habit) =>
+        habit.isCompletedOnDate(checkDate)
+      );
+      if (!allCompleted) {
+        return false; // 未完了がある
       }
     }
 
@@ -146,7 +149,7 @@ class BadgeService {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
-    // その週の月曜〜日曜をチェック
+    // その週の日曜〜土曜をチェック
     for (int i = 0; i < 7; i++) {
       final checkDate = weekStart.add(Duration(days: i));
 
