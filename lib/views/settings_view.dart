@@ -90,6 +90,7 @@ class _SettingsViewState extends State<SettingsView> {
         },
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'settings_fab',
         onPressed: () async {
           await Navigator.push(
             context,

@@ -312,6 +312,7 @@ class HomeViewState extends State<HomeView> with WidgetsBindingObserver {
         },
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'home_fab',
         onPressed: () async {
           await Navigator.push(
             context,
