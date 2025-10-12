@@ -1,4 +1,4 @@
-package io.github.shitakahashi.dekita_calendar
+package io.github.shitakahashi.dekitacalendar
 
 import android.app.AlarmManager
 import android.app.NotificationChannel
