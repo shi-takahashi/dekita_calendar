@@ -12,6 +12,8 @@ class Habit {
   final List<DateTime> completedDates;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final DateTime? startDate;  // 開始日（nullの場合は制限なし）
+  final DateTime? endDate;    // 終了日（nullの場合は無期限）
 
   Habit({
     required this.id,
@@ -22,6 +24,8 @@ class Habit {
     required this.completedDates,
     required this.createdAt,
     required this.updatedAt,
+    this.startDate,
+    this.endDate,
   });
 
   bool isCompletedOnDate(DateTime date) {
@@ -31,6 +35,25 @@ class Habit {
 
   /// 指定された日付にこの習慣が予定されているかチェック
   bool isScheduledOn(DateTime date) {
+    // 開始日より前の場合は予定されていない
+    if (startDate != null) {
+      final dateOnly = DateTime(date.year, date.month, date.day);
+      final startDateOnly = DateTime(startDate!.year, startDate!.month, startDate!.day);
+      if (dateOnly.isBefore(startDateOnly)) {
+        return false;
+      }
+    }
+
+    // 終了日より後の場合は予定されていない
+    if (endDate != null) {
+      final dateOnly = DateTime(date.year, date.month, date.day);
+      final endDateOnly = DateTime(endDate!.year, endDate!.month, endDate!.day);
+      if (dateOnly.isAfter(endDateOnly)) {
+        return false;
+      }
+    }
+
+    // 頻度によるチェック
     switch (frequency) {
       case HabitFrequency.daily:
         return true;
@@ -75,8 +98,17 @@ class Habit {
 
     // 最大365日遡る（過去1年分）
     for (int i = 0; i < 365; i++) {
-      // この日が予定日でない場合はスキップ
+      // この日が予定日でない場合
       if (!isScheduledOn(checkDate)) {
+        // 開始日より前の日付に到達したら終了
+        if (startDate != null) {
+          final checkDateOnly = DateTime(checkDate.year, checkDate.month, checkDate.day);
+          final startDateOnly = DateTime(startDate!.year, startDate!.month, startDate!.day);
+          if (checkDateOnly.isBefore(startDateOnly)) {
+            break; // 開始日より前なので終了
+          }
+        }
+        // 終了日より後の日付の場合もスキップして次へ
         checkDate = checkDate.subtract(const Duration(days: 1));
         continue;
       }
@@ -104,6 +136,8 @@ class Habit {
       'completedDates': completedDates.map((d) => d.toIso8601String()).toList(),
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
+      'startDate': startDate?.toIso8601String(),
+      'endDate': endDate?.toIso8601String(),
     };
   }
 
@@ -123,6 +157,12 @@ class Habit {
           .toList(),
       createdAt: DateTime.parse(json['createdAt']),
       updatedAt: DateTime.parse(json['updatedAt']),
+      startDate: json['startDate'] != null
+          ? DateTime.parse(json['startDate'])
+          : null,
+      endDate: json['endDate'] != null
+          ? DateTime.parse(json['endDate'])
+          : null,
     );
   }
 
@@ -135,6 +175,10 @@ class Habit {
     List<DateTime>? completedDates,
     DateTime? createdAt,
     DateTime? updatedAt,
+    DateTime? startDate,
+    bool clearStartDate = false,
+    DateTime? endDate,
+    bool clearEndDate = false,
   }) {
     return Habit(
       id: id ?? this.id,
@@ -145,6 +189,8 @@ class Habit {
       completedDates: completedDates ?? this.completedDates,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      startDate: clearStartDate ? null : (startDate ?? this.startDate),
+      endDate: clearEndDate ? null : (endDate ?? this.endDate),
     );
   }
 

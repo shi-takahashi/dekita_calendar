@@ -120,79 +120,82 @@ class _HabitManageCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        habit.title,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+      child: InkWell(
+        onLongPress: () => _editHabit(context),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          habit.title,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                        ),
+                        const SizedBox(height: 4),
+                        _buildFrequencyChip(),
+                      ],
+                    ),
+                  ),
+                  PopupMenuButton<String>(
+                    onSelected: (value) async {
+                      switch (value) {
+                        case 'edit':
+                          await _editHabit(context);
+                          break;
+                        case 'delete':
+                          await _deleteHabit(context);
+                          break;
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: Row(
+                          children: [
+                            Icon(Icons.edit, size: 20),
+                            SizedBox(width: 8),
+                            Text('編集'),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 4),
-                      _buildFrequencyChip(),
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete, size: 20, color: Colors.red),
+                            SizedBox(width: 8),
+                            Text('削除', style: TextStyle(color: Colors.red)),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
-                ),
-                PopupMenuButton<String>(
-                  onSelected: (value) async {
-                    switch (value) {
-                      case 'edit':
-                        await _editHabit(context);
-                        break;
-                      case 'delete':
-                        await _deleteHabit(context);
-                        break;
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(
-                      value: 'edit',
-                      child: Row(
-                        children: [
-                          Icon(Icons.edit, size: 20),
-                          SizedBox(width: 8),
-                          Text('編集'),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(Icons.delete, size: 20, color: Colors.red),
-                          SizedBox(width: 8),
-                          Text('削除', style: TextStyle(color: Colors.red)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+                ],
+              ),
             const SizedBox(height: 12),
             Row(
               children: [
                 _buildStatItem(
-                  icon: Icons.local_fire_department,
-                  label: '現在の連続記録',
-                  value: '${habit.currentStreak}日',
-                  color: habit.currentStreak > 0 ? Colors.orange : Colors.grey,
+                  icon: Icons.event_available,
+                  label: '開始日',
+                  value: habit.startDate != null ? _formatDate(habit.startDate!) : '指定なし',
+                  color: Colors.blue,
                 ),
                 const SizedBox(width: 24),
                 _buildStatItem(
-                  icon: Icons.calendar_today,
-                  label: '作成日',
-                  value: _formatDate(habit.createdAt),
-                  color: Colors.blue,
+                  icon: Icons.event_busy,
+                  label: '終了日',
+                  value: habit.endDate != null ? _formatDate(habit.endDate!) : '指定なし',
+                  color: Colors.purple,
                 ),
               ],
             ),
@@ -217,6 +220,7 @@ class _HabitManageCard extends StatelessWidget {
             ],
           ],
         ),
+      ),
       ),
     );
   }

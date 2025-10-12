@@ -24,6 +24,8 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
   List<int> _selectedDays = [];
   TimeOfDay? _notificationTime;
   bool _enableNotification = false;
+  DateTime? _startDate = DateTime.now();
+  DateTime? _endDate;
 
   final List<String> _weekDays = [
     '月', '火', '水', '木', '金', '土', '日'
@@ -43,6 +45,34 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
     if (picked != null) {
       setState(() {
         _notificationTime = picked;
+      });
+    }
+  }
+
+  Future<void> _selectStartDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _startDate ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null) {
+      setState(() {
+        _startDate = picked;
+      });
+    }
+  }
+
+  Future<void> _selectEndDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _endDate ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null) {
+      setState(() {
+        _endDate = picked;
       });
     }
   }
@@ -78,6 +108,8 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
         completedDates: [],
         createdAt: now,
         updatedAt: now,
+        startDate: _startDate,
+        endDate: _endDate,
       );
 
       try {
@@ -249,7 +281,61 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                 trailing: const Icon(Icons.access_time),
                 onTap: _selectTime,
               ),
-            
+
+            const SizedBox(height: 24),
+
+            const Text(
+              '期間設定',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+
+            ListTile(
+              title: const Text('開始日'),
+              subtitle: _startDate != null
+                  ? Text('${_startDate!.year}年${_startDate!.month}月${_startDate!.day}日')
+                  : const Text('指定なし（過去すべて）'),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_startDate != null)
+                    IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        setState(() {
+                          _startDate = null;
+                        });
+                      },
+                    ),
+                  const Icon(Icons.calendar_today),
+                ],
+              ),
+              onTap: _selectStartDate,
+            ),
+
+            ListTile(
+              title: const Text('終了日'),
+              subtitle: _endDate != null
+                  ? Text('${_endDate!.year}年${_endDate!.month}月${_endDate!.day}日')
+                  : const Text('指定なし'),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_endDate != null)
+                    IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        setState(() {
+                          _endDate = null;
+                        });
+                      },
+                    ),
+                  const Icon(Icons.calendar_today),
+                ],
+              ),
+              onTap: _selectEndDate,
+            ),
+
             const SizedBox(height: 32),
             
             Row(

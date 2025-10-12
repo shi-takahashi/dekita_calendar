@@ -511,12 +511,7 @@ class _StatisticsViewState extends State<StatisticsView> with AutomaticKeepAlive
 
 
   bool _shouldCountDay(Habit habit, DateTime date) {
-    switch (habit.frequency) {
-      case HabitFrequency.daily:
-        return true;
-      case HabitFrequency.specificDays:
-        return habit.specificDays?.contains(date.weekday) ?? false;
-    }
+    return habit.isScheduledOn(date);
   }
 
   List<ChartData> _getChartData(Habit habit, int period) {

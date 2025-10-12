@@ -106,6 +106,7 @@ class BadgeService {
 
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
+    bool hasAnyScheduledDay = false; // この週に予定日があるかどうか
 
     // その週の月曜〜日曜までの7日間全てチェック
     for (int i = 0; i < 7; i++) {
@@ -121,18 +122,21 @@ class BadgeService {
         return habit.isScheduledOn(checkDate);
       }).toList();
 
-      // 予定された習慣が1つでもあり、全て完了していない場合は週未達成
+      // 予定された習慣が1つでもある場合
       if (scheduledHabits.isNotEmpty) {
+        hasAnyScheduledDay = true; // 予定日があることを記録
+
         final allCompleted = scheduledHabits.every((habit) =>
           habit.isCompletedOnDate(checkDate)
         );
         if (!allCompleted) {
-          return false;
+          return false; // 未完了がある
         }
       }
     }
 
-    return true;
+    // 予定日が1日もない週は未達成として扱う
+    return hasAnyScheduledDay;
   }
 
   /// 今週の予定日が全て過去になったかチェック（未完了確定判定用）

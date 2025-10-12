@@ -95,16 +95,7 @@ class HabitController extends ChangeNotifier {
 
   List<Habit> getTodayHabits() {
     final today = DateTime.now();
-    final weekday = today.weekday;
-    
-    return _habits.where((habit) {
-      switch (habit.frequency) {
-        case HabitFrequency.daily:
-          return true;
-        case HabitFrequency.specificDays:
-          return habit.specificDays?.contains(weekday) ?? false;
-      }
-    }).toList();
+    return _habits.where((habit) => habit.isScheduledOn(today)).toList();
   }
 
   Habit? getHabitById(String id) {

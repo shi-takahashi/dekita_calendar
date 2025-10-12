@@ -499,12 +499,7 @@ class _CalendarViewState extends State<CalendarView> {
   }
 
   bool _isHabitScheduledForDay(Habit habit, DateTime day) {
-    switch (habit.frequency) {
-      case HabitFrequency.daily:
-        return true;
-      case HabitFrequency.specificDays:
-        return habit.specificDays?.contains(day.weekday) ?? false;
-    }
+    return habit.isScheduledOn(day);
   }
 
   int _getCompletedHabitsCount(List<Habit> habits, DateTime day) {
