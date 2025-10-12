@@ -76,11 +76,9 @@ class _CalendarViewState extends State<CalendarView> {
                       color: Colors.deepPurple,
                       shape: BoxShape.circle,
                     ),
-                    markerDecoration: const BoxDecoration(
-                      color: Colors.green,
-                      shape: BoxShape.circle,
-                    ),
-                    markersMaxCount: 1,
+                    markersMaxCount: 10,
+                    markerSize: 6,
+                    markerMargin: const EdgeInsets.symmetric(horizontal: 1),
                   ),
                   eventLoader: (day) => _getHabitsForDay(habitController.habits, day),
                   onDaySelected: (selectedDay, focusedDay) {
@@ -145,53 +143,266 @@ class _CalendarViewState extends State<CalendarView> {
                       } else {
                         textColor = Colors.black87; // 平日は黒
                       }
-                      
-                      return Container(
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                        ),
-                        margin: const EdgeInsets.all(6.0),
-                        alignment: Alignment.center,
-                        child: Text(
-                          '${day.day}',
-                          style: TextStyle(
-                            color: textColor,
-                            fontSize: 16,
-                          ),
-                        ),
-                      );
-                    },
-                    markerBuilder: (context, day, events) {
-                      if (events.isNotEmpty) {
-                        final completedCount = _getCompletedHabitsCount(habitController.habits, day);
-                        final totalCount = _getTotalScheduledHabitsCount(habitController.habits, day);
-                        
-                        if (totalCount == 0) return null;
-                        
-                        final completionRate = completedCount / totalCount;
-                        Color markerColor;
-                        
-                        if (completionRate >= 1.0) {
-                          markerColor = Colors.green;
-                        } else if (completionRate >= 0.5) {
-                          markerColor = Colors.orange;
-                        } else if (completionRate > 0) {
-                          markerColor = Colors.yellow[700]!;
-                        } else {
-                          markerColor = Colors.red[300]!;
-                        }
-                        
-                        return Container(
-                          margin: const EdgeInsets.only(top: 32),
-                          height: 6,
-                          width: 6,
-                          decoration: BoxDecoration(
-                            color: markerColor,
-                            shape: BoxShape.circle,
+
+                      // 完了状態を取得
+                      final completedCount = _getCompletedHabitsCount(habitController.habits, day);
+                      final totalCount = _getTotalScheduledHabitsCount(habitController.habits, day);
+                      final hasHabits = totalCount > 0;
+                      final completionRate = hasHabits ? completedCount / totalCount : 0.0;
+
+                      Widget? stampWidget;
+                      if (hasHabits && completionRate >= 1.0) {
+                        // 完了100%の場合のみスタンプを表示：赤い丸に「済」
+                        stampWidget = Positioned(
+                          right: 0,
+                          top: 0,
+                          child: Container(
+                            width: 22,
+                            height: 22,
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.red[900]!, width: 2),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.red.withOpacity(0.4),
+                                  blurRadius: 4,
+                                  spreadRadius: 1,
+                                ),
+                              ],
+                            ),
+                            child: const Center(
+                              child: Text(
+                                '済',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
                           ),
                         );
                       }
-                      return null;
+                      // 一部完了の場合は右上には何も表示しない（下の丸で表現）
+
+                      return Stack(
+                        children: [
+                          Container(
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                            ),
+                            margin: const EdgeInsets.all(6.0),
+                            alignment: Alignment.center,
+                            child: Text(
+                              '${day.day}',
+                              style: TextStyle(
+                                color: textColor,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                          if (stampWidget != null) stampWidget,
+                        ],
+                      );
+                    },
+                    todayBuilder: (context, day, focusedDay) {
+                      Color textColor;
+                      if (day.weekday == DateTime.saturday) {
+                        textColor = Colors.blue[600]!;
+                      } else if (day.weekday == DateTime.sunday) {
+                        textColor = Colors.red[400]!;
+                      } else {
+                        textColor = Colors.black87;
+                      }
+
+                      final completedCount = _getCompletedHabitsCount(habitController.habits, day);
+                      final totalCount = _getTotalScheduledHabitsCount(habitController.habits, day);
+                      final hasHabits = totalCount > 0;
+                      final completionRate = hasHabits ? completedCount / totalCount : 0.0;
+
+                      Widget? stampWidget;
+                      if (hasHabits && completionRate >= 1.0) {
+                        // 完了100%の場合のみスタンプを表示：赤い丸に「済」
+                        stampWidget = Positioned(
+                          right: 0,
+                          top: 0,
+                          child: Container(
+                            width: 22,
+                            height: 22,
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.red[900]!, width: 2),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.red.withOpacity(0.4),
+                                  blurRadius: 4,
+                                  spreadRadius: 1,
+                                ),
+                              ],
+                            ),
+                            child: const Center(
+                              child: Text(
+                                '済',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }
+                      // 一部完了の場合は右上には何も表示しない（下の丸で表現）
+
+                      return Stack(
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.blue[300],
+                              shape: BoxShape.circle,
+                            ),
+                            margin: const EdgeInsets.all(8.0),
+                            alignment: Alignment.center,
+                            child: Text(
+                              '${day.day}',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          if (stampWidget != null) stampWidget,
+                        ],
+                      );
+                    },
+                    selectedBuilder: (context, day, focusedDay) {
+                      Color textColor;
+                      if (day.weekday == DateTime.saturday) {
+                        textColor = Colors.blue[600]!;
+                      } else if (day.weekday == DateTime.sunday) {
+                        textColor = Colors.red[400]!;
+                      } else {
+                        textColor = Colors.black87;
+                      }
+
+                      final completedCount = _getCompletedHabitsCount(habitController.habits, day);
+                      final totalCount = _getTotalScheduledHabitsCount(habitController.habits, day);
+                      final hasHabits = totalCount > 0;
+                      final completionRate = hasHabits ? completedCount / totalCount : 0.0;
+
+                      Widget? stampWidget;
+                      if (hasHabits && completionRate >= 1.0) {
+                        // 完了100%の場合のみスタンプを表示：赤い丸に「済」
+                        stampWidget = Positioned(
+                          right: 0,
+                          top: 0,
+                          child: Container(
+                            width: 22,
+                            height: 22,
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.red[900]!, width: 2),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.red.withOpacity(0.4),
+                                  blurRadius: 4,
+                                  spreadRadius: 1,
+                                ),
+                              ],
+                            ),
+                            child: const Center(
+                              child: Text(
+                                '済',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }
+                      // 一部完了の場合は右上には何も表示しない（下の丸で表現）
+
+                      return Stack(
+                        children: [
+                          Container(
+                            decoration: const BoxDecoration(
+                              color: Colors.deepPurple,
+                              shape: BoxShape.circle,
+                            ),
+                            margin: const EdgeInsets.all(8.0),
+                            alignment: Alignment.center,
+                            child: Text(
+                              '${day.day}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          if (stampWidget != null) stampWidget,
+                        ],
+                      );
+                    },
+                    markerBuilder: (context, day, events) {
+                      if (events.isEmpty) return null;
+
+                      final completedCount = _getCompletedHabitsCount(habitController.habits, day);
+                      final totalCount = _getTotalScheduledHabitsCount(habitController.habits, day);
+
+                      if (totalCount == 0) return null;
+
+                      // 5個以下の場合は丸印で表示
+                      if (totalCount <= 5) {
+                        return Container(
+                          margin: const EdgeInsets.only(top: 2),
+                          height: 10,
+                          alignment: Alignment.center,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: List.generate(totalCount, (index) {
+                              final isCompleted = index < completedCount;
+                              return Container(
+                                width: 6,
+                                height: 6,
+                                margin: const EdgeInsets.symmetric(horizontal: 1),
+                                decoration: BoxDecoration(
+                                  color: isCompleted ? Colors.green : Colors.grey[400],
+                                  shape: BoxShape.circle,
+                                ),
+                              );
+                            }),
+                          ),
+                        );
+                      } else {
+                        // 6個以上の場合は数字で表示（丸印と同じ位置・高さ）
+                        return Container(
+                          margin: const EdgeInsets.only(top: 2),
+                          height: 10,
+                          alignment: Alignment.center,
+                          child: Text(
+                            '$completedCount/$totalCount',
+                            style: TextStyle(
+                              fontSize: 8,
+                              fontWeight: FontWeight.bold,
+                              color: completedCount == totalCount
+                                ? Colors.green[700]
+                                : completedCount > 0
+                                  ? Colors.orange[700]
+                                  : Colors.grey[600],
+                            ),
+                          ),
+                        );
+                      }
                     },
                   ),
                 ),
