@@ -361,7 +361,7 @@ class _HabitManageCard extends StatelessWidget {
   }
 
   String _formatDate(DateTime date) {
-    return '${date.month}/${date.day}';
+    return '${date.year}/${date.month}/${date.day}';
   }
 
   String _formatTime(DateTime time) {

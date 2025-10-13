@@ -281,9 +281,6 @@ class _EditHabitScreenState extends State<EditHabitScreen> {
             
             SwitchListTile(
               title: const Text('リマインダー通知'),
-              subtitle: _enableNotification && _notificationTime != null
-                  ? Text('${_notificationTime!.format(context)}')
-                  : null,
               value: _enableNotification,
               onChanged: (value) async {
                 if (value) {
