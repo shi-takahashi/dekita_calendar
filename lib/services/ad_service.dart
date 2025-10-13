@@ -14,7 +14,7 @@ class AdService {
   /// - ユーザーが自由に変更できないよう、設定画面には表示しない
   ///
   /// true: 広告を表示、false: 広告を非表示
-  static const bool showAds = false; // この1行を変更するだけでバナー広告とインタースティシャル広告の両方をON/OFF
+  static const bool showAds = true; // この1行を変更するだけでバナー広告とインタースティシャル広告の両方をON/OFF
 
   // インタースティシャル広告のインスタンス保持
   static InterstitialAd? _interstitialAd;
@@ -31,11 +31,11 @@ class AdService {
   static const String _testInterstitialAdUnitIdAndroid = 'ca-app-pub-3940256099942544/1033173712';
   static const String _testInterstitialAdUnitIdIOS = 'ca-app-pub-3940256099942544/4411468910';
 
-  // 本番用広告ID（リリースビルド時）- 現在はテスト用IDを使用
-  static const String _productionBannerAdUnitIdAndroid = 'ca-app-pub-3940256099942544/6300978111';
-  static const String _productionBannerAdUnitIdIOS = 'ca-app-pub-3940256099942544/2934735716';
-  static const String _productionInterstitialAdUnitIdAndroid = 'ca-app-pub-3940256099942544/1033173712';
-  static const String _productionInterstitialAdUnitIdIOS = 'ca-app-pub-3940256099942544/4411468910';
+  // 本番用広告ID（リリースビルド時）
+  static const String _productionBannerAdUnitIdAndroid = 'ca-app-pub-4630894580841955/3228908614'; // バナー広告（Android）
+  static const String _productionBannerAdUnitIdIOS = 'ca-app-pub-3940256099942544/2934735716'; // バナー広告（iOS）
+  static const String _productionInterstitialAdUnitIdAndroid = 'ca-app-pub-4630894580841955/4811892525'; // インタースティシャル広告（Android）
+  static const String _productionInterstitialAdUnitIdIOS = 'ca-app-pub-3940256099942544/4411468910'; // インタースティシャル広告（iOS）
 
   /// 現在の環境に応じたバナー広告IDを取得
   static String get bannerAdUnitId {
